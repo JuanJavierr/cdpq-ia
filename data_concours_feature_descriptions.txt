@@ -1,0 +1,73 @@
+{
+    "INFLATION": [
+        {"FEATURE_NAME": "US_CPI", "FEATURE_CATEGORY": "INFLATION", "FEATURE_DESCRIPTION": "Consumer Price Index for the United States, measuring the average change in prices over time that consumers pay for a basket of goods and services."},
+        {"FEATURE_NAME": "US_CPI_EXCL_FOOD_N_ENERGY", "FEATURE_CATEGORY": "INFLATION", "FEATURE_DESCRIPTION": "Consumer Price Index for the United States excluding food and energy prices, providing a measure of core inflation."},
+        {"FEATURE_NAME": "US_PERSONAL_SPENDING_PCE", "FEATURE_CATEGORY": "INFLATION", "FEATURE_DESCRIPTION": "Personal Consumption Expenditures Price Index, measuring the prices paid by consumers for goods and services in the United States."},
+        {"FEATURE_NAME": "CANADA_CPI", "FEATURE_CATEGORY": "INFLATION", "FEATURE_DESCRIPTION": "Consumer Price Index for Canada, measuring the average change in prices over time that consumers pay for a basket of goods and services."},
+        {"FEATURE_NAME": "CANADA_CPI_EXCL_FOOD_N_ENERGY", "FEATURE_CATEGORY": "INFLATION", "FEATURE_DESCRIPTION": "Consumer Price Index for Canada excluding food and energy prices, providing a measure of core inflation."}
+    ],
+    "GDP_ECONOMIC_GROWTH": [
+        {"FEATURE_NAME": "US_CAPACITY_UTILIZATION", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Percentage of resources used by corporations and factories to produce goods in the United States."},
+        {"FEATURE_NAME": "US_M2", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Measure of the money supply that includes cash, checking deposits, and easily convertible near money in the United States."},
+        {"FEATURE_NAME": "US_CONSUMER_CREDIT", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Total amount of credit extended to individuals for personal consumption in the United States."},
+        {"FEATURE_NAME": "US_INDUSTRIAL_PRODUCTION", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Measure of the output of the industrial sector in the United States, including manufacturing, mining, and utilities."},
+        {"FEATURE_NAME": "US_NFP_ESTABLISHMENT_DATA", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Nonfarm Payrolls data, representing the total number of paid U.S. workers of any business, excluding general government employees, private household employees, employees of nonprofit organizations, and farm employees."},
+        {"FEATURE_NAME": "US_ISM_MANUFACTURING", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Index based on surveys of manufacturing firms in the United States, indicating the economic health of the manufacturing sector."},
+        {"FEATURE_NAME": "US_ISM_SERVICES", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Index based on surveys of non-manufacturing firms in the United States, indicating the economic health of the services sector."},
+        {"FEATURE_NAME": "US_DUR_GOODS_NO_CAP_GOODS_NDF_EXCL_AIRCRAFT", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Durable Goods Orders excluding defense and aircraft, providing insight into business investment in the United States."},
+        {"FEATURE_NAME": "US_RETAIL_SALES", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Measure of the total receipts of retail stores in the United States, indicating consumer spending trends."},
+        {"FEATURE_NAME": "US_EMPLOYMENT_HOUSEHOLD_DATA", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Employment data collected from households in the United States, providing insight into the labor market."},
+        {"FEATURE_NAME": "US_UNEMPLOYMENT_RATE", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Percentage of the total workforce in the United States that is unemployed and actively seeking employment."},
+        {"FEATURE_NAME": "US_JOBLESS_CLAIMS_4_WEEKS_AVERAGE", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Four-week moving average of initial claims for unemployment insurance in the United States, providing insight into labor market trends."},
+        {"FEATURE_NAME": "CANADA_MANUFACTURING_SALES", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Total sales of goods produced by Canadian manufacturers, indicating the health of the manufacturing sector."},
+        {"FEATURE_NAME": "CANADA_EMPLOYMENT_HOUSEHOLD_SURVEY_DATA", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Employment data collected from households in Canada, providing insight into the labor market."},
+        {"FEATURE_NAME": "CANADA_UNEMPLOYMENT_RATE", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Percentage of the total workforce in Canada that is unemployed and actively seeking employment."},
+        {"FEATURE_NAME": "CAN_M2", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Measure of the money supply that includes cash, checking deposits, and easily convertible near money in Canada."},
+        {"FEATURE_NAME": "CANADA_RETAIL_SALES", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Measure of the total receipts of retail stores in Canada, indicating consumer spending trends."},
+        {"FEATURE_NAME": "CANADA_RETAIL_SALES_EXCL_AUTO_N_GAS", "FEATURE_CATEGORY": "GDP_ECONOMIC_GROWTH", "FEATURE_DESCRIPTION": "Retail sales in Canada excluding automobiles and gasoline, providing a clearer view of consumer spending trends."}
+    ],
+    "EQUITY": [
+        {"FEATURE_NAME": "TSX", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "Toronto Stock Exchange index, representing the performance of the Canadian stock market."},
+        {"FEATURE_NAME": "SNP_500", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 index, representing the performance of 500 large companies listed on stock exchanges in the United States."},
+        {"FEATURE_NAME": "SNP_500_CONSUMER_DISCRETIONARY_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Consumer Discretionary Sector index, representing the performance of consumer discretionary companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_CONSUMER_STAPLES_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Consumer Staples Sector index, representing the performance of consumer staples companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_ENERGY_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Energy Sector index, representing the performance of energy companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_HEALTH_CARE_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Health Care Sector index, representing the performance of health care companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_INDUSTRIALS_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Industrials Sector index, representing the performance of industrial companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_INFORMATION_TECHNOLOGY_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Information Technology Sector index, representing the performance of information technology companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_MATERIALS_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Materials Sector index, representing the performance of materials companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_COMMUNICATION_SERVICES_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Communication Services Sector index, representing the performance of communication services companies within the S&P 500."},
+        {"FEATURE_NAME": "SNP_500_UTILITIES_SECTOR", "FEATURE_CATEGORY": "EQUITY", "FEATURE_DESCRIPTION": "S&P 500 Utilities Sector index, representing the performance of utilities companies within the S&P 500."}
+    ],
+    "GOLD": [
+        {"FEATURE_NAME": "GOLD_SPOT", "FEATURE_CATEGORY": "GOLD", "FEATURE_DESCRIPTION": "Spot price of gold, representing the current market price for immediate delivery of gold."}
+    ],
+    "US_CRB_INDEX": [
+        {"FEATURE_NAME": "US_CRB_INDEX", "FEATURE_CATEGORY": "US_CRB_INDEX", "FEATURE_DESCRIPTION": "Commodity Research Bureau index, representing the overall direction of commodity sectors."}
+    ],
+    "CRUDE_OIL": [
+        {"FEATURE_NAME": "CRUDE_PRICE_USD", "FEATURE_CATEGORY": "CRUDE_OIL", "FEATURE_DESCRIPTION": "Price of crude oil in USD, representing the market price for crude oil."}
+    ],
+    "RATE": [
+        {"FEATURE_NAME": "RATE_LEVEL_10Y", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 10-year US government bonds, representing long-term interest rates."},
+        {"FEATURE_NAME": "RATE_LEVEL_1Y", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 1-year US government bonds, representing short-term interest rates."},
+        {"FEATURE_NAME": "RATE_LEVEL_2Y", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 2-year US government bonds, representing short-term interest rates."},
+        {"FEATURE_NAME": "RATE_LEVEL_3M", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 3-month US government bonds, representing very short-term interest rates."},
+        {"FEATURE_NAME": "RATE_LEVEL_3Y", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 3-year US government bonds, representing medium-term interest rates."},
+        {"FEATURE_NAME": "RATE_LEVEL_5Y", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 5-year US government bonds, representing medium-term interest rates."},
+        {"FEATURE_NAME": "CAN_TB_YIELD_1YR", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 1-year Canadian Treasury Bills, representing short-term interest rates in Canada."},
+        {"FEATURE_NAME": "CAN_TB_YIELD_3MTH", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 3-month Canadian Treasury Bills, representing very short-term interest rates in Canada."},
+        {"FEATURE_NAME": "CAN_TB_YIELD_6MTH", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Yield on 6-month Canadian Treasury Bills, representing short-term interest rates in Canada."},
+        {"FEATURE_NAME": "FFED", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Federal Funds Rate, the interest rate at which depository institutions trade federal funds with each other overnight."},
+        {"FEATURE_NAME": "CANADA_BOC_RATE", "FEATURE_CATEGORY": "RATE", "FEATURE_DESCRIPTION": "Bank of Canada rate, the interest rate at which major financial institutions borrow and lend overnight funds among themselves."}
+    ],
+    "EXCHANGE_RATE": [
+        {"FEATURE_NAME": "CADUSD", "FEATURE_CATEGORY": "EXCHANGE_RATE", "FEATURE_DESCRIPTION": "Exchange rate between the Canadian Dollar and the US Dollar."},
+        {"FEATURE_NAME": "USDJPY_SPOT_EXCHANGE_RATE", "FEATURE_CATEGORY": "EXCHANGE_RATE", "FEATURE_DESCRIPTION": "Spot exchange rate between the US Dollar and the Japanese Yen."}
+    ],
+    "RISK_PREMIUM": [
+        {"FEATURE_NAME": "US_VIX_INDEX", "FEATURE_CATEGORY": "RISK_PREMIUM", "FEATURE_DESCRIPTION": "CBOE Volatility Index, measuring the market's expectation of 30-day volatility."},
+        {"FEATURE_NAME": "DXY_INDEX", "FEATURE_CATEGORY": "RISK_PREMIUM", "FEATURE_DESCRIPTION": "US Dollar Index, measuring the value of the US Dollar relative to a basket of foreign currencies."},
+        {"FEATURE_NAME": "SKEW_INDEX", "FEATURE_CATEGORY": "RISK_PREMIUM", "FEATURE_DESCRIPTION": "CBOE SKEW Index, measuring the perceived tail risk of the distribution of S&P 500 returns over a 30-day horizon."}
+    ]
+}
