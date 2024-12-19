@@ -42,7 +42,15 @@ def load_data():
     df["DATE"] = pd.to_datetime(df["DATE"])
     df = df.set_index("DATE").asfreq("B")
     # df = df.fillna(method="ffill")
-    df = df.resample("QE").mean()
+
+    variables = ["FFED", "US_PERSONAL_SPENDING_PCE", "US_CPI", "US_TB_YIELD_10YRS", "US_UNEMPLOYMENT_RATE"]
+    df = df[variables]
+
+    df = df.resample("ME").mean()
+
+    # df = df.dropna()
+    df = df.astype(np.float32)
+
     return df
 
 
