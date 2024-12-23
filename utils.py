@@ -3,6 +3,8 @@ import json
 import pandas as pd
 import numpy as np
 import plotly.express as px
+from darts import TimeSeries
+
 
 config = {
     "start_date_train": "1970-01-01",
@@ -88,3 +90,15 @@ def plot_forecast(real_values, forecast):
     fig.add_bar(x=errors.index, y=errors, name='Errors')
     fig.update_layout(title='Simple Exponential Smoothing vs Actual', xaxis_title='Date', yaxis_title='Value')
     fig.show()
+
+
+
+def df2ts(df):
+    # Create a TimeSeries object
+    ts = TimeSeries.from_dataframe(df, value_cols=['US_TB_YIELD_10YRS']) #.add_holidays("US")
+
+    # Create covariates
+    covariates = df.drop(columns=['US_TB_YIELD_10YRS'])
+    covariates = TimeSeries.from_dataframe(covariates)
+
+    return ts, covariates
