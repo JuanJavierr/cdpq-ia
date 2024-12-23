@@ -3,3 +3,4 @@ venv/
 *.pyc
 ~*
 darts_logs/
+runs/
