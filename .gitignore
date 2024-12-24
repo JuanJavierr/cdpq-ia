@@ -4,3 +4,4 @@ venv/
 ~*
 darts_logs/
 runs/
+lightning_logs/
