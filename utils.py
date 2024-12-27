@@ -4,6 +4,14 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from darts import TimeSeries
+from darts.dataprocessing import Pipeline
+from darts.dataprocessing.transformers import (
+    Scaler,
+    MissingValuesFiller,
+    Mapper,
+    InvertibleMapper,
+    Diff
+)
 
 
 config = {
@@ -37,6 +45,25 @@ def train_test_split(df, label_col = "FFED_diff"):
 
     return X_train, y_train, X_test, y_test
 
+def difference_monthly_macro_variables(df):
+    """
+    Macro-economic metrics such as CPI, PCE and unemployment rate are only known 1 month after the period they cover.
+    Example: On January 15th 2016, we want to produce forecasts for February 15th 2016, but
+    we only have CPI data up to December 2015.
+
+    For this reason, we lag historical macro-economic variables by 1 prior to modeling
+    """
+    print("Before shift:")
+    print(df.head())
+    for col in ["US_CPI", "US_UNEMPLOYMENT_RATE", "US_PERSONAL_SPENDING_PCE"]:
+        df[col] = df[col].shift(1)
+
+    print("After shift:")
+    print(df.head())
+
+    return df
+
+
 
 def load_data():
     df = pd.read_csv("./data_concours.csv", index_col=0)
@@ -52,6 +79,8 @@ def load_data():
 
     # df = df.dropna()
     df = df.astype(np.float32)
+
+    df = difference_monthly_macro_variables(df)
 
     return df
 
@@ -91,6 +120,63 @@ def plot_forecast(real_values, forecast):
     fig.update_layout(title='Simple Exponential Smoothing vs Actual', xaxis_title='Date', yaxis_title='Value')
     fig.show()
 
+def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
+    series_start_time = series.start_time()
+    full_history = ts_scaled.drop_after(series_start_time).append(series)
+
+    unscaled_full = pipeline.inverse_transform(full_history, partial=True)
+
+    idx_start_time = unscaled_full.get_index_at_point(series_start_time)
+    unscaled = unscaled_full.drop_before(idx_start_time - 1)
+
+    return unscaled
+    
+
+def make_forecasts(model, ts, ts_scaled, covariates_scaled, pipeline, output_df = False):
+    # TODO: Refactor into 2 functions: make_forecasts and get_labels_for_period
+    
+    forecasts = pd.DataFrame()
+
+    val_df_scaled = ts_scaled.drop_before(pd.Timestamp("2015-12-31")).pd_dataframe()
+
+    for i, t in enumerate(val_df_scaled.index):
+        ts_up_to_t = ts_scaled.drop_after(t)
+        covariates = covariates_scaled.drop_after(t)
+
+        # print(f"Producing forecasts made at date: {ts_up_to_t.end_time()}")
+        pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates)
+        # print(pred)
+
+        idx = ts.get_index_at_point(t)
+        labels = ts.pd_dataframe().iloc[idx:idx+12]
+        # print(labels)
+
+        pred_unscaled = unscale_series(pred, pipeline, ts_scaled)
+        pred_unscaled = pred_unscaled.pd_series()
+        # print(pred_unscaled)
+        labels["forecast"] = pred_unscaled
+        labels["error"] = labels["US_TB_YIELD_10YRS"] - labels["forecast"]
+        labels["forecast_date"] = ts_up_to_t.end_time()
+
+        # print(labels)
+        forecasts = pd.concat([forecasts, labels])
+
+    forecasts["horizon"] = (forecasts.index.to_period("M") - forecasts.forecast_date.dt.to_period("M")).map(lambda x: x.n)
+    print(forecasts.groupby(by="horizon").mean()[["error"]])
+    if output_df:
+        return forecasts
+
+    forecast_by_horizon = {}
+    for h in forecasts["horizon"].unique():
+        fore = forecasts[forecasts["horizon"] == h]
+        fore = fore.asfreq("ME")
+        forecast_by_horizon[h] = TimeSeries.from_dataframe(fore, value_cols=["forecast"])
+
+    return forecast_by_horizon
+    
+        
+    
+        
 
 
 def df2ts(df):
