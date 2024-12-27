@@ -12,3 +12,10 @@ Differencing the data to achieve stationarity stabilizes the mean and variance, 
 
 # Références
 - https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4399406#:~:text=Yes!,communicate%20on%20monetary%20policy%20decisions.
+
+
+
+
+
+# Cross-validation for time series
+https://robjhyndman.com/hyndsight/tscv/
