@@ -45,7 +45,7 @@ def load_data():
     df = df.set_index("DATE").asfreq("B")
     # df = df.fillna(method="ffill")
 
-    variables = ["FFED", "US_PERSONAL_SPENDING_PCE", "US_CPI", "US_TB_YIELD_10YRS", "US_UNEMPLOYMENT_RATE"]
+    variables = ["FFED", "US_PERSONAL_SPENDING_PCE", "US_CPI", "US_TB_YIELD_10YRS", "US_UNEMPLOYMENT_RATE", "SNP_500"]
     df = df[variables]
 
     df = df.resample("ME").mean()
