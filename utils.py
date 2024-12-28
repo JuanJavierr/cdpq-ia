@@ -133,7 +133,7 @@ def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
     return unscaled
     
 
-def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scaled, pipeline, output_df = False):
+def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scaled, pipeline):
     # TODO: Refactor into 2 functions: make_forecasts and get_labels_for_period
     
     forecasts = pd.DataFrame()
@@ -145,17 +145,23 @@ def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scale
         covariates = covariates_scaled.drop_after(t)
 
         # print(f"Producing forecasts made at date: {ts_up_to_t.end_time()}")
+        # Make forecasts
         pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500)
+
+        # Get values for each quantile and unscale
+        pred_quantiles_unscaled = {q: unscale_series(pred.quantile(q), pipeline, ts_scaled).pd_series() for q in [0.05, 0.1, 0.5, 0.9, 0.95]}
+        # print(pred_unscaled)
         # print(pred)
 
         idx = ts.get_index_at_point(t)
         labels = ts.pd_dataframe().iloc[idx:idx+12]
         # print(labels)
 
-        pred_unscaled = unscale_series(pred, pipeline, ts_scaled)
-        pred_unscaled = pred_unscaled.pd_series()
-        # print(pred_unscaled)
-        labels["forecast"] = pred_unscaled
+        labels["lowest_q"] = pred_quantiles_unscaled[0.05]
+        labels["low_q"] = pred_quantiles_unscaled[0.1]
+        labels["forecast"] = pred_quantiles_unscaled[0.5]
+        labels["high_q"] = pred_quantiles_unscaled[0.9]
+        labels["highest_q"] = pred_quantiles_unscaled[0.95]
         labels["error"] = labels["US_TB_YIELD_10YRS"] - labels["forecast"]
         labels["forecast_date"] = ts_up_to_t.end_time()
 
@@ -164,20 +170,21 @@ def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scale
 
     forecasts["horizon"] = (forecasts.index.to_period("M") - forecasts.forecast_date.dt.to_period("M")).map(lambda x: x.n)
     print(forecasts.groupby(by="horizon").mean()[["error"]])
-    if output_df:
-        return forecasts
 
+    return forecasts
+
+def get_ts_by_forecast_horizon(pred_df):
     forecast_by_horizon = {}
-    for h in forecasts["horizon"].unique():
-        fore = forecasts[forecasts["horizon"] == h]
+    for h in pred_df["horizon"].unique():
+        fore = pred_df[pred_df["horizon"] == h]
         fore = fore.asfreq("ME")
-        forecast_by_horizon[h] = TimeSeries.from_dataframe(fore, value_cols=["forecast"])
+        # forecast_by_horizon[h] = TimeSeries.from_dataframe(fore, value_cols=["forecast"])
+        values = np.stack([fore["lowest_q"], fore["low_q"], fore["forecast"], fore["high_q"], fore["highest_q"]], axis=1)
+        values = np.expand_dims(values, axis=1)
+        forecast_by_horizon[h] = TimeSeries.from_times_and_values(times=fore.index, values=values)
 
     return forecast_by_horizon
-    
-        
-    
-        
+
 
 
 def df2ts(df):
