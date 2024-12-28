@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from darts import TimeSeries
+from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import (
     Scaler,
@@ -132,7 +133,7 @@ def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
     return unscaled
     
 
-def make_forecasts(model, ts, ts_scaled, covariates_scaled, pipeline, output_df = False):
+def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scaled, pipeline, output_df = False):
     # TODO: Refactor into 2 functions: make_forecasts and get_labels_for_period
     
     forecasts = pd.DataFrame()
@@ -144,7 +145,7 @@ def make_forecasts(model, ts, ts_scaled, covariates_scaled, pipeline, output_df 
         covariates = covariates_scaled.drop_after(t)
 
         # print(f"Producing forecasts made at date: {ts_up_to_t.end_time()}")
-        pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates)
+        pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500)
         # print(pred)
 
         idx = ts.get_index_at_point(t)
