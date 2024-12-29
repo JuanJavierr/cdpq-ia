@@ -13,6 +13,11 @@ from darts.dataprocessing.transformers import (
     InvertibleMapper,
     Diff
 )
+from sklearn.preprocessing import StandardScaler
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from pathlib import Path
+
 
 
 config = {
@@ -78,7 +83,8 @@ def load_data():
 
     df = df.resample("ME").mean()
 
-    # df = df.dropna()
+    df = df[df.index <= "2023-08-31"]
+
     df = df.astype(np.float32)
 
     df = difference_monthly_macro_variables(df)
@@ -196,3 +202,73 @@ def df2ts(df):
     covariates = TimeSeries.from_dataframe(covariates)
 
     return ts, covariates
+
+
+def make_pipeline(): 
+    log_transformer = InvertibleMapper(
+        fn=np.log1p, inverse_fn=np.expm1, name="log1p"
+    )
+    scaler = Scaler(StandardScaler())
+    filler = MissingValuesFiller()
+    differentiator = Diff(dropna=True)
+    pipeline = Pipeline([filler, scaler, differentiator])
+
+    return pipeline
+
+
+def scale_ts(series):
+    pipeline = make_pipeline()
+    series_scaled = pipeline.fit_transform(series)
+    return pipeline, series_scaled
+
+
+def plot_training_history(train_losses, val_losses):
+    # Create the figure
+    fig = go.Figure()
+
+    # Add traces for training and validation loss
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(1, len(train_losses) + 1)),
+            y=train_losses,
+            name='Training Loss',
+            line=dict(color='blue')
+        )
+    )
+    
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(1, len(val_losses) + 1)),
+            y=val_losses,
+            name='Validation Loss',
+            line=dict(color='red')
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title='Training and Validation Loss Over Time',
+        xaxis_title='Epoch',
+        yaxis_title='Loss',
+        hovermode='x unified',
+        template='plotly_white'
+    )
+
+    # Show the plot
+    fig.show()
+
+
+def evaluate_by_horizon(forecasts_df):
+    forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs()
+    forecasts_df["squared_error"] = forecasts_df["error"]**2
+    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error"]].add_prefix("mean_")
+    grouped["root_mean_squared_error"] = grouped["mean_squared_error"]**0.5
+
+    return grouped
+
+
+def save_results(hparams, eval_metrics, output_path):
+    output_path = Path(output_path)
+    include_header = not output_path.exists()
+    results = pd.concat([pd.Series(hparams), eval_metrics.mean()])
+    pd.DataFrame(results).T.to_csv(output_path, mode="a", header=include_header, index=False)
