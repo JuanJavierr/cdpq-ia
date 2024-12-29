@@ -31,7 +31,7 @@ config = {
 
 def load_data_dict():
     tables = []
-    with open("data_concours_feature_descriptions.txt") as dd:
+    with open("data/data_concours_feature_descriptions.txt") as dd:
         dd_json = json.load(dd)
         for k in dd_json.keys():
             tables.append(pd.json_normalize(dd_json[k]))
@@ -79,7 +79,7 @@ def load_data():
 
 
     ###
-    df = pd.read_csv("./data_concours.csv", index_col=0)
+    df = pd.read_csv("./data/data_concours.csv", index_col=0)
 
     df["DATE"] = pd.to_datetime(df["DATE"])
     df = df.set_index("DATE").asfreq("B")
