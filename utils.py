@@ -94,7 +94,7 @@ def load_data():
 
 
 
-    df = df.merge(sf_df, left_index=True, right_index=True, how="left")
+    df = df.merge(sf_df, left_index=True, right_index=True, how="left").rename(columns={"News Sentiment": "NEWS_SENTIMENT"})
 
     df = df[df.index >= "1980-01-01"] # Only keep data with known sentiment
 
@@ -210,27 +210,30 @@ def df2ts(df):
     # Create a TimeSeries object
     ts = TimeSeries.from_dataframe(df, value_cols=['US_TB_YIELD_10YRS']) #.add_holidays("US")
 
-    # Create covariates
-    covariates = df.drop(columns=['US_TB_YIELD_10YRS'])
-    covariates = TimeSeries.from_dataframe(covariates)
+    # Create covariates that will be differenced
+    covars_diff = df[["US_CPI", "US_PERSONAL_SPENDING_PCE", "SNP_500"]]
+    covars_diff = TimeSeries.from_dataframe(covars_diff)
 
-    return ts, covariates
+    # Create covariates that will not be differenced
+    covars = df[["FFED", "US_UNEMPLOYMENT_RATE", "NEWS_SENTIMENT"]]
+    covars = TimeSeries.from_dataframe(covars)
 
 
-def make_pipeline(): 
+    return ts, covars_diff, covars
+
+def scale_ts(series, should_diff):
     log_transformer = InvertibleMapper(
         fn=np.log1p, inverse_fn=np.expm1, name="log1p"
     )
     scaler = Scaler(StandardScaler())
     filler = MissingValuesFiller()
     differentiator = Diff(dropna=True)
-    pipeline = Pipeline([filler, scaler, differentiator])
 
-    return pipeline
+    if should_diff:
+        pipeline = Pipeline([filler, scaler, differentiator])
+    else:
+        pipeline = Pipeline([filler, scaler])
 
-
-def scale_ts(series):
-    pipeline = make_pipeline()
     series_scaled = pipeline.fit_transform(series)
     return pipeline, series_scaled
 
