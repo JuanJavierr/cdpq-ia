@@ -51,7 +51,7 @@ def train_test_split(df, label_col = "FFED_diff"):
 
     return X_train, y_train, X_test, y_test
 
-def difference_monthly_macro_variables(df):
+def lag_monthly_macro_variables(df):
     """
     Macro-economic metrics such as CPI, PCE and unemployment rate are only known 1 month after the period they cover.
     Example: On January 15th 2016, we want to produce forecasts for February 15th 2016, but
@@ -72,6 +72,13 @@ def difference_monthly_macro_variables(df):
 
 
 def load_data():
+
+    ### Load SF FED data
+    sf_df = pd.read_excel("data/sf_fed/news_sentiment_data.xlsx", sheet_name="Data")
+    sf_df = sf_df.set_index("date").asfreq("B").resample("ME").mean()
+
+
+    ###
     df = pd.read_csv("./data_concours.csv", index_col=0)
 
     df["DATE"] = pd.to_datetime(df["DATE"])
@@ -83,11 +90,17 @@ def load_data():
 
     df = df.resample("ME").mean()
 
-    df = df[df.index <= "2023-08-31"]
+    df = df[df.index <= "2023-08-31"] # Keep last year for testing
+
+
+
+    df = df.merge(sf_df, left_index=True, right_index=True, how="left")
+
+    df = df[df.index >= "1980-01-01"] # Only keep data with known sentiment
+
+    df = lag_monthly_macro_variables(df)
 
     df = df.astype(np.float32)
-
-    df = difference_monthly_macro_variables(df)
 
     return df
 
