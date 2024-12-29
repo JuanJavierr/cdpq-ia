@@ -231,10 +231,11 @@ def scale_ts(series, should_diff):
 
     if should_diff:
         pipeline = Pipeline([filler, scaler, differentiator])
+        series_scaled = pipeline.fit_transform(series)
     else:
         pipeline = Pipeline([filler, scaler])
+        series_scaled = pipeline.fit_transform(series)[1:]
 
-    series_scaled = pipeline.fit_transform(series)
     return pipeline, series_scaled
 
 
