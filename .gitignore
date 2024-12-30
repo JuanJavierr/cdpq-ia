@@ -6,3 +6,6 @@ darts_logs/
 runs/
 lightning_logs/
 access_token.txt
+/shelf/
+/workspace.xml
+.idea/
