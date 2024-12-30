@@ -59,13 +59,13 @@ def lag_monthly_macro_variables(df):
 
     For this reason, we lag historical macro-economic variables by 1 prior to modeling
     """
-    print("Before shift:")
-    print(df.head())
+    # print("Before shift:")
+    # print(df.head())
     for col in ["US_CPI", "US_UNEMPLOYMENT_RATE", "US_PERSONAL_SPENDING_PCE"]:
         df[col] = df[col].shift(1)
 
-    print("After shift:")
-    print(df.head())
+    # print("After shift:")
+    # print(df.head())
 
     return df
 
