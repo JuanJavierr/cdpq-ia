@@ -1,0 +1,20 @@
+import pandas as pd
+from statsmodels.tsa.api import VAR
+import matplotlib.pyplot as plt
+from statsmodels.tsa.stattools import adfuller
+
+def load_and_process_data(file_path):
+
+# Read the Excel file (replace 'your_file.xlsx' with the actual file path)
+df = pd.read_excel('Book1.xlsx', engine='openpyxl')
+
+df['DATE'] = pd.to_datetime(df['DATE'])
+
+# Extract the month and year from the 'DATE' column
+df['Month'] = df['DATE'].dt.to_period('M')
+
+# Group by 'Month' and calculate the average for the other columns
+monthly_avg = df.groupby('Month')[['US_CPI_MOM', 'US_PERSONAL_SPENDING_PCE_MOM', 'US_UNEMPLOYMENT_RATE_MOM' , 'SNP_500_MOM' , 'FFED_MOM' , 'US_TB_YIELD_10YRS' ]].mean().reset_index()
+
+return monthly_avg
+
