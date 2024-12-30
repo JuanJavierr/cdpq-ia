@@ -289,3 +289,26 @@ def save_results(hparams, eval_metrics, output_path):
     include_header = not output_path.exists()
     results = pd.concat([pd.Series(hparams), eval_metrics.mean()])
     pd.DataFrame(results).T.to_csv(output_path, mode="a", header=include_header, index=False)
+
+
+
+
+def arnaud_get_data():
+
+    df = load_data()
+    ts, covars_diff, covars_nodiff = df2ts(df)
+
+    covars_diff_pipeline, covars_diff_scaled = scale_ts(covars_diff, should_diff=True)
+    covars_nodiff_pipeline, covars_nodiff_scaled = scale_ts(
+        covars_nodiff, should_diff=False
+    )
+    pipeline, ts_scaled = scale_ts(ts, should_diff=True)
+
+
+    covariates_scaled = covars_diff_scaled.stack(covars_nodiff_scaled)
+
+    covariates_scaled = covariates_scaled.stack(ts_scaled)
+    df = covariates_scaled.pd_dataframe()
+
+
+    return df
