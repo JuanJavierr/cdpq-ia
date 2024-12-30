@@ -20,15 +20,6 @@ from pathlib import Path
 
 
 #### Deep Learning utils
-def evaluate_by_horizon(forecasts_df):
-    forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs()
-    forecasts_df["squared_error"] = forecasts_df["error"]**2
-    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error"]].add_prefix("mean_")
-    grouped["root_mean_squared_error"] = grouped["mean_squared_error"]**0.5
-
-    return grouped
-
-
 def save_results(hparams, eval_metrics, output_path):
     output_path = Path(output_path)
     include_header = not output_path.exists()
@@ -75,7 +66,7 @@ def plot_training_history(train_losses, val_losses):
 
 
 
-### Other utils
+### Misc utils
 def load_data_dict():
     tables = []
     with open(Path(__file__).parent / "data/data_concours_feature_descriptions.txt") as dd:
@@ -104,6 +95,8 @@ def print_features_not_in_data_dict(df, data_dict):
             print(f"Feature {feature} not found in data dictionary")
 
 
+
+#
 def lag_monthly_macro_variables(df):
     """
     Macro-economic metrics such as CPI, PCE and unemployment rate are only known 1 month after the period they cover.
@@ -124,32 +117,38 @@ def lag_monthly_macro_variables(df):
 
 
 def load_data():
+    """Load raw data and construct DataFrame with all **unscaled** features"""
 
-    ### Load SF FED data
+    # Load SF FED data
     sf_df = pd.read_excel(Path(__file__).parent / "data/sf_fed/news_sentiment_data.xlsx", sheet_name="Data")
     sf_df = sf_df.set_index("date").asfreq("B").resample("ME").mean()
 
 
-    ###
+    # Load macro-economic data
     df = pd.read_csv(Path(__file__).parent / "data/data_concours.csv", index_col=0)
 
+    # Set date index
     df["DATE"] = pd.to_datetime(df["DATE"])
     df = df.set_index("DATE").asfreq("B")
     # df = df.fillna(method="ffill")
 
+    # Keep only relevant variables
     variables = ["FFED", "US_PERSONAL_SPENDING_PCE", "US_CPI", "US_TB_YIELD_10YRS", "US_UNEMPLOYMENT_RATE", "SNP_500"]
     df = df[variables]
 
+    # Resample to monthly frequency
     df = df.resample("ME").mean()
 
-    df = df[df.index <= "2023-08-31"] # Keep last year for testing
+    # Keep last year for testing
+    df = df[df.index <= "2023-08-31"]
 
-
-
+    # Merge with SF FED data
     df = df.merge(sf_df, left_index=True, right_index=True, how="left").rename(columns={"News Sentiment": "NEWS_SENTIMENT"})
 
-    df = df[df.index >= "1980-01-01"] # Only keep data with known sentiment
+    # Keep only data from 1980 onwards
+    df = df[df.index >= "1980-01-01"]
 
+    # Lag macro-economic variables
     df = lag_monthly_macro_variables(df)
 
     df = df.astype(np.float32)
@@ -169,14 +168,18 @@ def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
     return unscaled
     
 
-def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scaled, pipeline):
+def make_forecasts(model: TorchForecastingModel, ts: TimeSeries, ts_scaled: TimeSeries, covariates_scaled: TimeSeries, pipeline:Pipeline) -> pd.DataFrame:
     # TODO: Refactor into 2 functions: make_forecasts and get_labels_for_period
     
     forecasts = pd.DataFrame()
 
     val_df_scaled = ts_scaled.drop_before(pd.Timestamp("2015-12-31")).pd_dataframe()
 
-    for i, t in enumerate(val_df_scaled.index):
+
+    # Make forecasts for each date in the validation set
+    for t in val_df_scaled.index:
+
+        # Get data up to date t
         ts_up_to_t = ts_scaled.drop_after(t)
         covariates = covariates_scaled.drop_after(t)
 
@@ -189,10 +192,14 @@ def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scale
         # print(pred_unscaled)
         # print(pred)
 
+        # Get labels (real values) for the period
         idx = ts.get_index_at_point(t)
         labels = ts.pd_dataframe().iloc[idx:idx+12]
         # print(labels)
 
+
+
+        # Create a dataframe with the forecasted values
         labels["lowest_q"] = pred_quantiles_unscaled[0.05]
         labels["low_q"] = pred_quantiles_unscaled[0.1]
         labels["forecast"] = pred_quantiles_unscaled[0.5]
@@ -202,9 +209,14 @@ def make_forecasts(model: TorchForecastingModel, ts, ts_scaled, covariates_scale
         labels["forecast_date"] = ts_up_to_t.end_time()
 
         # print(labels)
+        # Append to forecasts
         forecasts = pd.concat([forecasts, labels])
 
+
+    # Horizon is the number of months between the forecast date and the date of the forecast
     forecasts["horizon"] = (forecasts.index.to_period("M") - forecasts.forecast_date.dt.to_period("M")).map(lambda x: x.n)
+
+    # Print evaluation metrics
     print(forecasts.groupby(by="horizon").mean()[["error"]])
 
     return forecasts
@@ -234,13 +246,10 @@ def df2ts(df):
     covars = df[["FFED", "US_UNEMPLOYMENT_RATE", "NEWS_SENTIMENT"]]
     covars = TimeSeries.from_dataframe(covars)
 
-
     return ts, covars_diff, covars
 
 def scale_ts(series, should_diff):
     """Scale TimeSeries and apply transformations"""
-
-
     log_transformer = InvertibleMapper(
         fn=np.log1p, inverse_fn=np.expm1, name="log1p"
     )
@@ -257,7 +266,21 @@ def scale_ts(series, should_diff):
 
     return pipeline, series_scaled
 
+def evaluate_by_horizon(forecasts_df: pd.DataFrame) -> pd.DataFrame:
+    """Evaluate forecasts by horizon
+    Args:
+        forecasts_df: DataFrame containing forecasts and real values. Must have columns "forecast", "US_TB_YIELD_10YRS" and "horizon".
+        US_TB_YIELD_10YRS is the real value. forecast is the forecasted value. horizon is the number of months between the forecast date and the date of the forecast
+    """
+    # Compute error and squared error
+    forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs()
+    forecasts_df["squared_error"] = forecasts_df["error"]**2
 
+    # Group by horizon and compute mean error and mean squared error
+    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error"]].add_prefix("mean_")
+    grouped["root_mean_squared_error"] = grouped["mean_squared_error"]**0.5
+
+    return grouped
 
 
 def arnaud_get_data():
