@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from darts import TimeSeries
-from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
+from darts.models.forecasting.torch_forecasting_model import GlobalForecastingModel
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import (
     Scaler,
@@ -17,6 +17,7 @@ from sklearn.preprocessing import StandardScaler
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 
 #### Deep Learning utils
@@ -64,6 +65,34 @@ def plot_training_history(train_losses, val_losses):
     # Show the plot
     fig.show()
 
+
+def plot_forecast_for_horizon(h, forecasts_ts, axs, ts):
+    figsize = (9, 6)
+    lowest_q, low_q, high_q, highest_q = 0.05, 0.1, 0.9, 0.95
+    label_q_outer = f"{int(lowest_q * 100)}-{int(highest_q * 100)}th percentiles"
+    label_q_inner = f"{int(low_q * 100)}-{int(high_q * 100)}th percentiles"
+
+    fcast = forecasts_ts[h]
+    
+    # plot actual series
+    # plt.figure(figsize=figsize)
+    ts[fcast.start_time(): ].plot(label="actual", ax=axs)
+    
+    # plot prediction with quantile ranges
+    fcast.plot(
+        low_quantile=0.1, high_quantile=0.95, label=label_q_outer, ax=axs
+    )
+    fcast.plot(low_quantile=0.3, high_quantile=0.7, label=label_q_inner, ax=axs)
+
+
+    # if axs.get_legend():
+    #     axs.get_legend().remove()
+    # axs.set_xlabel("")
+    
+    # plt.title(f"MAPE: {mape(ts, fcast):.2f}%")
+    axs.set_title(f"{h}-month ahead forecast", fontsize=8)
+    plt.legend()
+    plt.show()
 
 
 ### Misc utils
@@ -156,6 +185,15 @@ def load_data():
     return df
 
 
+def moving_average(series, window_size):
+    from darts.models import MovingAverageFilter
+
+
+    model = MovingAverageFilter(window=window_size, centered=False)
+    smoothed = model.filter(series)
+
+    return smoothed
+
 def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
     series_start_time = series.start_time()
     full_history = ts_scaled.drop_after(series_start_time).append(series)
@@ -168,7 +206,7 @@ def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
     return unscaled
     
 
-def make_forecasts(model: TorchForecastingModel, ts: TimeSeries, ts_scaled: TimeSeries, covariates_scaled: TimeSeries, pipeline:Pipeline) -> pd.DataFrame:
+def make_forecasts(model: GlobalForecastingModel, ts: TimeSeries, ts_scaled: TimeSeries, covariates_scaled: TimeSeries, pipeline:Pipeline) -> pd.DataFrame:
     # TODO: Refactor into 2 functions: make_forecasts and get_labels_for_period
     
     forecasts = pd.DataFrame()
@@ -181,20 +219,29 @@ def make_forecasts(model: TorchForecastingModel, ts: TimeSeries, ts_scaled: Time
 
         # Get data up to date t
         ts_up_to_t = ts_scaled.drop_after(t)
-        covariates = covariates_scaled.drop_after(t)
+        if covariates_scaled is not None:
+            covariates = covariates_scaled.drop_after(t)
+        else:
+            covariates = None
 
         # print(f"Producing forecasts made at date: {ts_up_to_t.end_time()}")
-        # Make forecasts
-        pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500)
+        if model.supports_probabilistic_prediction:
+            # Make forecasts
+            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500)
 
-        # Get values for each quantile and unscale
-        pred_quantiles_unscaled = {q: unscale_series(pred.quantile(q), pipeline, ts_scaled).pd_series() for q in [0.05, 0.1, 0.5, 0.9, 0.95]}
-        # print(pred_unscaled)
-        # print(pred)
+            # Get values for each quantile and unscale
+            pred_quantiles_unscaled = {q: unscale_series(pred.quantile(q), pipeline, ts_scaled).pd_series() for q in [0.05, 0.1, 0.5, 0.9, 0.95]}
+            # print(pred_unscaled)
+            # print(pred)
+        else:
+            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates)
+            pred_unscaled = unscale_series(pred, pipeline, ts_scaled).pd_series()
+            pred_quantiles_unscaled = {0.5: pred_unscaled}
+            for q in [0.05, 0.1, 0.9, 0.95]:
+                pred_quantiles_unscaled[q] = pred_unscaled
 
         # Get labels (real values) for the period
-        idx = ts.get_index_at_point(t)
-        labels = ts.pd_dataframe().iloc[idx:idx+12]
+        labels = ts.pd_dataframe().loc[t:t+pd.Timedelta(days=364)]
         # print(labels)
 
 
@@ -217,7 +264,7 @@ def make_forecasts(model: TorchForecastingModel, ts: TimeSeries, ts_scaled: Time
     forecasts["horizon"] = (forecasts.index.to_period("M") - forecasts.forecast_date.dt.to_period("M")).map(lambda x: x.n)
 
     # Print evaluation metrics
-    print(forecasts.groupby(by="horizon").mean()[["error"]])
+    # print(forecasts.groupby(by="horizon").mean()[["error"]])
 
     return forecasts
 
@@ -273,7 +320,7 @@ def evaluate_by_horizon(forecasts_df: pd.DataFrame) -> pd.DataFrame:
         US_TB_YIELD_10YRS is the real value. forecast is the forecasted value. horizon is the number of months between the forecast date and the date of the forecast
     """
     # Compute error and squared error
-    forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs()
+    forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs() * 100
     forecasts_df["squared_error"] = forecasts_df["error"]**2
 
     # Group by horizon and compute mean error and mean squared error
