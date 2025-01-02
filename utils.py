@@ -151,6 +151,7 @@ def load_data():
     # Load SF FED data
     sf_df = pd.read_excel(Path(__file__).parent / "data/sf_fed/news_sentiment_data.xlsx", sheet_name="Data")
     sf_df = sf_df.set_index("date").asfreq("B").resample("ME").mean()
+    sf_df = sf_df.rolling(window=12).mean().dropna() # Smooth data
 
 
     # Load macro-economic data
@@ -159,10 +160,10 @@ def load_data():
     # Set date index
     df["DATE"] = pd.to_datetime(df["DATE"])
     df = df.set_index("DATE").asfreq("B")
-    # df = df.fillna(method="ffill")
 
     # Keep only relevant variables
-    variables = ["FFED", "US_PERSONAL_SPENDING_PCE", "US_CPI", "US_TB_YIELD_10YRS", "US_UNEMPLOYMENT_RATE", "SNP_500"]
+    variables = ["FFED", "US_PERSONAL_SPENDING_PCE", "US_CPI", "US_TB_YIELD_10YRS", "US_TB_YIELD_2YRS", "US_TB_YIELD_3YRS", "US_TB_YIELD_5YRS", "US_TB_YIELD_3MTHS",
+                 "US_UNEMPLOYMENT_RATE", "SNP_500"]
     df = df[variables]
 
     # Resample to monthly frequency
@@ -184,15 +185,6 @@ def load_data():
 
     return df
 
-
-def moving_average(series, window_size):
-    from darts.models import MovingAverageFilter
-
-
-    model = MovingAverageFilter(window=window_size, centered=False)
-    smoothed = model.filter(series)
-
-    return smoothed
 
 def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
     series_start_time = series.start_time()
@@ -283,14 +275,14 @@ def get_ts_by_forecast_horizon(pred_df):
 
 def df2ts(df):
     # Create a TimeSeries object
-    ts = TimeSeries.from_dataframe(df, value_cols=['US_TB_YIELD_10YRS']) #.add_holidays("US")
+    ts = TimeSeries.from_dataframe(df, value_cols=['US_TB_YIELD_10YRS'])
 
     # Create covariates that will be differenced
-    covars_diff = df[["US_CPI", "US_PERSONAL_SPENDING_PCE", "SNP_500"]]
+    covars_diff = df[["US_CPI", "US_PERSONAL_SPENDING_PCE", "SNP_500", "NEWS_SENTIMENT"]]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
 
     # Create covariates that will not be differenced
-    covars = df[["FFED", "US_UNEMPLOYMENT_RATE", "NEWS_SENTIMENT"]]
+    covars = df[["FFED", "US_UNEMPLOYMENT_RATE"]]
     covars = TimeSeries.from_dataframe(covars)
 
     return ts, covars_diff, covars
@@ -305,7 +297,7 @@ def scale_ts(series, should_diff):
     differentiator = Diff(dropna=True)
 
     if should_diff:
-        pipeline = Pipeline([filler, scaler, differentiator])
+        pipeline = Pipeline([filler, differentiator, scaler])
         series_scaled = pipeline.fit_transform(series)
     else:
         pipeline = Pipeline([filler, scaler])
@@ -349,3 +341,36 @@ def arnaud_get_data():
 
 
     return df
+
+
+
+from statsmodels.tsa.stattools import adfuller, kpss
+
+
+def adf_test(timeseries):
+    print("Results of Dickey-Fuller Test:")
+    dftest = adfuller(timeseries, autolag="AIC")
+    dfoutput = pd.Series(
+        dftest[0:4],
+        index=[
+            "Test Statistic",
+            "p-value",
+            "#Lags Used",
+            "Number of Observations Used",
+        ],
+    )
+    for key, value in dftest[4].items():
+        dfoutput["Critical Value (%s)" % key] = value
+    return dfoutput
+
+
+
+def kpss_test(timeseries):
+    print("Results of KPSS Test:")
+    kpsstest = kpss(timeseries, regression="c", nlags="auto")
+    kpss_output = pd.Series(
+        kpsstest[0:3], index=["Test Statistic", "p-value", "Lags Used"]
+    )
+    for key, value in kpsstest[3].items():
+        kpss_output["Critical Value (%s)" % key] = value
+    return kpss_output
