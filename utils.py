@@ -1,17 +1,94 @@
-import pandas as pd
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 from darts import TimeSeries
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import (
-    Scaler,
-    MissingValuesFiller,
-    InvertibleMapper,
     Diff,
+    InvertibleMapper,
+    MissingValuesFiller,
+    Scaler,
 )
 from sklearn.preprocessing import StandardScaler
-from pathlib import Path
 
 
+#### Deep Learning utils
+def save_results(hparams, eval_metrics, output_path):
+    output_path = Path(output_path)
+    include_header = not output_path.exists()
+    results = pd.concat([pd.Series(hparams), eval_metrics.mean()])
+    pd.DataFrame(results).T.to_csv(
+        output_path, mode="a", header=include_header, index=False
+    )
+
+
+#### Plot utils
+def plot_training_history(train_losses, val_losses):
+    # Create the figure
+    fig = go.Figure()
+
+    # Add traces for training and validation loss
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(1, len(train_losses) + 1)),
+            y=train_losses,
+            name="Training Loss",
+            line=dict(color="blue"),
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(1, len(val_losses) + 1)),
+            y=val_losses,
+            name="Validation Loss",
+            line=dict(color="red"),
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title="Training and Validation Loss Over Time",
+        xaxis_title="Epoch",
+        yaxis_title="Loss",
+        hovermode="x unified",
+        template="plotly_white",
+    )
+
+    # Show the plot
+    fig.show()
+
+
+def plot_forecast_for_horizon(h, forecasts_ts, axs, ts):
+    figsize = (9, 6)
+    lowest_q, low_q, high_q, highest_q = 0.05, 0.1, 0.9, 0.95
+    label_q_outer = f"{int(lowest_q * 100)}-{int(highest_q * 100)}th percentiles"
+    label_q_inner = f"{int(low_q * 100)}-{int(high_q * 100)}th percentiles"
+
+    fcast = forecasts_ts[h]
+
+    # plot actual series
+    # plt.figure(figsize=figsize)
+    ts[fcast.start_time() :].plot(label="actual", ax=axs)
+
+    # plot prediction with quantile ranges
+    fcast.plot(low_quantile=0.1, high_quantile=0.95, label=label_q_outer, ax=axs)
+    fcast.plot(low_quantile=0.3, high_quantile=0.7, label=label_q_inner, ax=axs)
+
+    # if axs.get_legend():
+    #     axs.get_legend().remove()
+    # axs.set_xlabel("")
+
+    # plt.title(f"MAPE: {mape(ts, fcast):.2f}%")
+    axs.set_title(f"{h}-month ahead forecast", fontsize=8)
+    plt.legend()
+    plt.show()
+
+
+### Data Loading and Preprocessing
 def lag_monthly_macro_variables(df):
     """
     Macro-economic metrics such as CPI, PCE and unemployment rate are only known 1 month after the period they cover.
