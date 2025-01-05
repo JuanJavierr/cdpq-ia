@@ -99,6 +99,19 @@ def scale_ts(series, should_diff, diff_order=1):
     return pipeline, series_scaled
 
 
+def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
+    series_start_time = series.start_time()
+    full_history = ts_scaled.drop_after(series_start_time).append(series)
+
+    unscaled_full = pipeline.inverse_transform(full_history, partial=True)
+
+    idx_start_time = unscaled_full.get_index_at_point(series_start_time)
+    unscaled = unscaled_full.drop_before(idx_start_time - 1)
+
+    return unscaled
+
+
+
 def df2ts(df):
     # Create a TimeSeries object
     ts = TimeSeries.from_dataframe(df, value_cols=['US_TB_YIELD_10YRS'])

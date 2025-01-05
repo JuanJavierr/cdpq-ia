@@ -1,7 +1,0 @@
-input_chunk_length,output_chunk_length,hidden_size,n_epochs,batch_size,dropout,num_attention_heads,lstm_layers,add_relative_index,add_encoders,optimizer_kwargs,mean_abs_pct_error,mean_squared_error,root_mean_squared_error
-18,12,32,20,32,0.1,1,1,True,{'cyclic': {'future': ['month']}},{'lr': 0.002},0.3097865851082135,0.6001608990792359,0.7226513493478222
-18,12,32,20,32,0.1,1,1,True,{'cyclic': {'future': ['month']}},{'lr': 0.0005},0.30846421839875837,0.5414038740178618,0.6919732047066259
-18,12,32,20,32,0.1,1,2,True,{'cyclic': {'future': ['month']}},{'lr': 0.002},0.31643527599486393,0.6292635276635403,0.7399864822541566
-18,12,32,20,32,0.1,1,2,True,{'cyclic': {'future': ['month']}},{'lr': 0.0005},0.31665462585904486,0.6070134923887076,0.7289453374357037
-18,12,32,20,32,0.3,1,1,True,{'cyclic': {'future': ['month']}},{'lr': 0.002},0.3195631558003463,0.6765920694910088,0.7649144712118772
-18,12,32,20,32,0.3,1,1,True,{'cyclic': {'future': ['month']}},{'lr': 0.0005},0.30588285310016305,0.5245592232166546,0.682322667163226
