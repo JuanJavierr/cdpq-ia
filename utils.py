@@ -198,6 +198,27 @@ def lag_monthly_macro_variables(df):
     return df
 
 
+def load_jorge_data():
+    # deux_semaines = pd.read_csv("data/excel_jorge/Variables_Chomage_US_2semaines.csv")
+    # deux_semaines["DATE"] = pd.to_datetime(deux_semaines["DATE"])
+
+    # trimestrielles = pd.read_excel("data/excel_jorge/Variables_US_Trimestrielles.xlsx")
+    # weekly = pd.read_csv("data/excel_jorge/Variables_US_Weekly.csv")
+
+    autres = pd.read_csv("data/excel_jorge/Variables_US.csv")
+    autres["DATE"] = pd.to_datetime(autres["DATE"])
+    autres = autres.set_index("DATE").asfreq("MS")
+    autres = autres.replace("Nan", pd.NA)
+    autres = autres.apply(pd.to_numeric, errors="ignore")
+    autres = autres.resample("ME").mean()
+
+    autres = autres[
+        ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR"]
+    ]
+
+    return autres
+
+
 def load_data():
     """Load raw data and construct DataFrame with all **unscaled** features"""
 
@@ -222,6 +243,7 @@ def load_data():
         "US_PERSONAL_SPENDING_PCE",
         "US_CPI",
         "US_TB_YIELD_10YRS",
+        "US_TB_YIELD_1YR",
         "US_TB_YIELD_2YRS",
         "US_TB_YIELD_3YRS",
         "US_TB_YIELD_5YRS",
@@ -231,11 +253,23 @@ def load_data():
     ]
     df = df[variables]
 
+
+    # Compute yield curve indicator
+    df["YIELD_CURVE"] = df["US_TB_YIELD_10YRS"] - df["US_TB_YIELD_3MTHS"]
+
+
     # Resample to monthly frequency
     df = df.resample("ME").mean()
 
     # Keep last year for testing
     df = df[df.index <= "2023-08-31"]
+
+
+
+    ###### Add Jorge's data
+    jorge_df = load_jorge_data()
+    df = df.merge(jorge_df, left_index=True, right_index=True, how="left")
+
 
     # Merge with SF FED data
     df = df.merge(sf_df, left_index=True, right_index=True, how="left").rename(
