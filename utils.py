@@ -45,7 +45,7 @@ def make_forecasts(model, ts: TimeSeries, ts_scaled: TimeSeries, covariates_scal
         # print(f"Producing forecasts made at date: {ts_up_to_t.end_time()}")
         if model.supports_probabilistic_prediction:
             # Make forecasts
-            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500)
+            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500, verbose=False)
 
             # Get values for each quantile and unscale
             pred_quantiles_unscaled = {q: unscale_series(pred.quantile(q), pipeline, ts_scaled).pd_series() for q in [0.05, 0.1, 0.5, 0.9, 0.95]}
@@ -97,6 +97,22 @@ def get_ts_by_forecast_horizon(pred_df):
         forecast_by_horizon[h] = TimeSeries.from_times_and_values(times=fore.index, values=values)
 
     return forecast_by_horizon
+
+def evaluate_by_horizon(forecasts_df: pd.DataFrame) -> pd.DataFrame:
+    """Evaluate forecasts by horizon
+    Args:
+        forecasts_df: DataFrame containing forecasts and real values. Must have columns "forecast", "US_TB_YIELD_10YRS" and "horizon".
+        US_TB_YIELD_10YRS is the real value. forecast is the forecasted value. horizon is the number of months between the forecast date and the date of the forecast
+    """
+    # Compute error and squared error
+    forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs() * 100
+    forecasts_df["squared_error"] = forecasts_df["error"]**2
+
+    # Group by horizon and compute mean error and mean squared error
+    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error"]].add_prefix("mean_")
+    grouped["root_mean_squared_error"] = grouped["mean_squared_error"]**0.5
+
+    return grouped
 
 
 #### Plot utils
