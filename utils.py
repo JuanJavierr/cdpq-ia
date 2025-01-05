@@ -24,6 +24,80 @@ def save_results(hparams, eval_metrics, output_path):
         output_path, mode="a", header=include_header, index=False
     )
 
+def make_forecasts(model, ts: TimeSeries, ts_scaled: TimeSeries, covariates_scaled: TimeSeries, pipeline:Pipeline) -> pd.DataFrame:
+    # TODO: Refactor into 2 functions: make_forecasts and get_labels_for_period
+    
+    forecasts = pd.DataFrame()
+
+    val_df_scaled = ts_scaled.drop_before(pd.Timestamp("2015-12-31")).pd_dataframe()
+
+
+    # Make forecasts for each date in the validation set
+    for t in val_df_scaled.index:
+
+        # Get data up to date t
+        ts_up_to_t = ts_scaled.drop_after(t)
+        if covariates_scaled is not None:
+            covariates = covariates_scaled.drop_after(t)
+        else:
+            covariates = None
+
+        # print(f"Producing forecasts made at date: {ts_up_to_t.end_time()}")
+        if model.supports_probabilistic_prediction:
+            # Make forecasts
+            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500)
+
+            # Get values for each quantile and unscale
+            pred_quantiles_unscaled = {q: unscale_series(pred.quantile(q), pipeline, ts_scaled).pd_series() for q in [0.05, 0.1, 0.5, 0.9, 0.95]}
+            # print(pred_unscaled)
+            # print(pred)
+        else:
+            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates)
+            pred_unscaled = unscale_series(pred, pipeline, ts_scaled).pd_series()
+            pred_quantiles_unscaled = {0.5: pred_unscaled}
+            for q in [0.05, 0.1, 0.9, 0.95]:
+                pred_quantiles_unscaled[q] = pred_unscaled
+
+        # Get labels (real values) for the period
+        labels = ts.pd_dataframe().loc[t:t+pd.Timedelta(days=364)]
+        # print(labels)
+
+
+
+        # Create a dataframe with the forecasted values
+        labels["lowest_q"] = pred_quantiles_unscaled[0.05]
+        labels["low_q"] = pred_quantiles_unscaled[0.1]
+        labels["forecast"] = pred_quantiles_unscaled[0.5]
+        labels["high_q"] = pred_quantiles_unscaled[0.9]
+        labels["highest_q"] = pred_quantiles_unscaled[0.95]
+        labels["error"] = labels["US_TB_YIELD_10YRS"] - labels["forecast"]
+        labels["forecast_date"] = ts_up_to_t.end_time()
+
+        # print(labels)
+        # Append to forecasts
+        forecasts = pd.concat([forecasts, labels])
+
+
+    # Horizon is the number of months between the forecast date and the date of the forecast
+    forecasts["horizon"] = (forecasts.index.to_period("M") - forecasts.forecast_date.dt.to_period("M")).map(lambda x: x.n)
+
+    # Print evaluation metrics
+    # print(forecasts.groupby(by="horizon").mean()[["error"]])
+
+    return forecasts
+
+def get_ts_by_forecast_horizon(pred_df):
+    forecast_by_horizon = {}
+    for h in pred_df["horizon"].unique():
+        fore = pred_df[pred_df["horizon"] == h]
+        fore = fore.asfreq("ME")
+        # forecast_by_horizon[h] = TimeSeries.from_dataframe(fore, value_cols=["forecast"])
+        values = np.stack([fore["lowest_q"], fore["low_q"], fore["forecast"], fore["high_q"], fore["highest_q"]], axis=1)
+        values = np.expand_dims(values, axis=1)
+        forecast_by_horizon[h] = TimeSeries.from_times_and_values(times=fore.index, values=values)
+
+    return forecast_by_horizon
+
 
 #### Plot utils
 def plot_training_history(train_losses, val_losses):
