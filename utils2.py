@@ -1,23 +1,15 @@
-import re
-import json
 import pandas as pd
 import numpy as np
-import plotly.express as px
 from darts import TimeSeries
-from darts.models.forecasting.torch_forecasting_model import GlobalForecastingModel
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import (
     Scaler,
     MissingValuesFiller,
-    Mapper,
     InvertibleMapper,
-    Diff
+    Diff,
 )
 from sklearn.preprocessing import StandardScaler
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from pathlib import Path
-import matplotlib.pyplot as plt
 
 
 def lag_monthly_macro_variables(df):
@@ -43,10 +35,12 @@ def load_data():
     """Load raw data and construct DataFrame with all **unscaled** features"""
 
     # Load SF FED data
-    sf_df = pd.read_excel(Path(__file__).parent / "data/sf_fed/news_sentiment_data.xlsx", sheet_name="Data")
+    sf_df = pd.read_excel(
+        Path(__file__).parent / "data/sf_fed/news_sentiment_data.xlsx",
+        sheet_name="Data",
+    )
     sf_df = sf_df.set_index("date").asfreq("B").resample("ME").mean()
-    sf_df = sf_df.rolling(window=12).mean().dropna() # Smooth data
-
+    sf_df = sf_df.rolling(window=12).mean().dropna()  # Smooth data
 
     # Load macro-economic data
     df = pd.read_csv(Path(__file__).parent / "data/data_concours.csv", index_col=0)
@@ -56,8 +50,18 @@ def load_data():
     df = df.set_index("DATE").asfreq("B")
 
     # Keep only relevant variables
-    variables = ["FFED", "US_PERSONAL_SPENDING_PCE", "US_CPI", "US_TB_YIELD_10YRS", "US_TB_YIELD_2YRS", "US_TB_YIELD_3YRS", "US_TB_YIELD_5YRS", "US_TB_YIELD_3MTHS",
-                 "US_UNEMPLOYMENT_RATE", "SNP_500"]
+    variables = [
+        "FFED",
+        "US_PERSONAL_SPENDING_PCE",
+        "US_CPI",
+        "US_TB_YIELD_10YRS",
+        "US_TB_YIELD_2YRS",
+        "US_TB_YIELD_3YRS",
+        "US_TB_YIELD_5YRS",
+        "US_TB_YIELD_3MTHS",
+        "US_UNEMPLOYMENT_RATE",
+        "SNP_500",
+    ]
     df = df[variables]
 
     # Resample to monthly frequency
@@ -67,7 +71,9 @@ def load_data():
     df = df[df.index <= "2023-08-31"]
 
     # Merge with SF FED data
-    df = df.merge(sf_df, left_index=True, right_index=True, how="left").rename(columns={"News Sentiment": "NEWS_SENTIMENT"})
+    df = df.merge(sf_df, left_index=True, right_index=True, how="left").rename(
+        columns={"News Sentiment": "NEWS_SENTIMENT"}
+    )
 
     # Keep only data from 1980 onwards
     df = df[df.index >= "1980-01-01"]
@@ -82,9 +88,7 @@ def load_data():
 
 def scale_ts(series, should_diff, diff_order=1):
     """Scale TimeSeries and apply transformations"""
-    log_transformer = InvertibleMapper(
-        fn=np.log1p, inverse_fn=np.expm1, name="log1p"
-    )
+    log_transformer = InvertibleMapper(fn=np.log1p, inverse_fn=np.expm1, name="log1p")
     scaler = Scaler(StandardScaler())
     filler = MissingValuesFiller()
     differentiator = Diff(dropna=True, lags=diff_order)
@@ -111,13 +115,21 @@ def unscale_series(series: TimeSeries, pipeline: Pipeline, ts_scaled):
     return unscaled
 
 
-
 def df2ts(df):
     # Create a TimeSeries object
-    ts = TimeSeries.from_dataframe(df, value_cols=['US_TB_YIELD_10YRS'])
+    ts = TimeSeries.from_dataframe(df, value_cols=["US_TB_YIELD_10YRS"])
 
     # Create covariates that will be differenced
-    covars_diff = df[["FFED", "US_TB_YIELD_2YRS", "US_TB_YIELD_5YRS", "US_TB_YIELD_3YRS", "US_CPI", "US_PERSONAL_SPENDING_PCE"]]
+    covars_diff = df[
+        [
+            "FFED",
+            "US_TB_YIELD_2YRS",
+            "US_TB_YIELD_5YRS",
+            "US_TB_YIELD_3YRS",
+            "US_CPI",
+            "US_PERSONAL_SPENDING_PCE",
+        ]
+    ]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
 
     covars_diff_yoy = df[["US_UNEMPLOYMENT_RATE", "SNP_500"]]
