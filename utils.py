@@ -324,20 +324,31 @@ def df2ts(df):
     covars_diff = df[
         [
             "FFED",
+            "US_TB_YIELD_1YR",
             "US_TB_YIELD_2YRS",
             "US_TB_YIELD_5YRS",
             "US_TB_YIELD_3YRS",
-            "US_CPI",
+            "US_TB_YIELD_5YRS",
+            "US_TB_YIELD_3MTHS",
             "US_PERSONAL_SPENDING_PCE",
+            "STICKCPIM157SFRBATL",
+            "MICH", # EXPECTED INFLATION 1 YR
+            "EXPINF10YR", # EXPECTED INFLATION 10 YR
+            "AWHMAN",
+            "STDSL" # SMALL DEPOSITS
         ]
     ]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
 
-    covars_diff_yoy = df[["US_UNEMPLOYMENT_RATE", "SNP_500"]]
+    covars_diff_yoy = df[
+        ["SNP_500", # STOCK MARKET
+                          "US_CPI" # INFLATION
+                          ]
+                          ]
     covars_diff_yoy = TimeSeries.from_dataframe(covars_diff_yoy)
 
     # Create covariates that will not be differenced
-    covars_nodiff = df[["NEWS_SENTIMENT"]]
+    covars_nodiff = df[["NEWS_SENTIMENT", "YIELD_CURVE", "US_UNEMPLOYMENT_RATE", "STDSL"]]
     covars_nodiff = TimeSeries.from_dataframe(covars_nodiff)
 
     return ts, covars_diff, covars_diff_yoy, covars_nodiff
