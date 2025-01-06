@@ -295,10 +295,10 @@ def scale_ts(series, should_diff, diff_order=1):
     differentiator = Diff(dropna=True, lags=diff_order)
 
     if should_diff:
-        pipeline = Pipeline([filler, differentiator, scaler])
+        pipeline = Pipeline([filler, log_transformer, differentiator, scaler])
         series_scaled = pipeline.fit_transform(series)
     else:
-        pipeline = Pipeline([filler, scaler])
+        pipeline = Pipeline([filler, log_transformer, scaler])
         series_scaled = pipeline.fit_transform(series)
 
     return pipeline, series_scaled
@@ -320,9 +320,7 @@ def df2ts(df):
     # Create a TimeSeries object
     ts = TimeSeries.from_dataframe(df, value_cols=["US_TB_YIELD_10YRS"])
 
-    # Create covariates that will be differenced
-    covars_diff = df[
-        [
+    varss = [
             "FFED",
             "US_TB_YIELD_1YR",
             "US_TB_YIELD_2YRS",
@@ -335,20 +333,40 @@ def df2ts(df):
             "MICH", # EXPECTED INFLATION 1 YR
             "EXPINF10YR", # EXPECTED INFLATION 10 YR
             "AWHMAN",
-            "STDSL" # SMALL DEPOSITS
+            "STDSL", # SMALL DEPOSITS,
+
+            #### YOY
+            "SNP_500", # STOCK MARKET
+            "US_CPI", # INFLATION
+
+
+            # NO DIFF
+            "NEWS_SENTIMENT",
+            "YIELD_CURVE",
+            "US_UNEMPLOYMENT_RATE",
+            "STDSL"
         ]
-    ]
+
+    # Create covariates that will be differenced
+    covars_diff = df[varss]
+    covars_diff.columns = [col + "_diff" for col in covars_diff.columns]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
 
-    covars_diff_yoy = df[
-        ["SNP_500", # STOCK MARKET
-                          "US_CPI" # INFLATION
-                          ]
-                          ]
+
+    covars_diff_yoy = df[varss]
+    covars_diff_yoy.columns = [col + "_yoy" for col in covars_diff_yoy.columns]
     covars_diff_yoy = TimeSeries.from_dataframe(covars_diff_yoy)
 
     # Create covariates that will not be differenced
-    covars_nodiff = df[["NEWS_SENTIMENT", "YIELD_CURVE", "US_UNEMPLOYMENT_RATE", "STDSL"]]
+    covars_nodiff = df[varss]
+    covars_nodiff.columns = [col + "_nodiff" for col in covars_nodiff.columns]
     covars_nodiff = TimeSeries.from_dataframe(covars_nodiff)
 
-    return ts, covars_diff, covars_diff_yoy, covars_nodiff
+
+
+    covars_diff_qoq = df[varss]
+    # Append qoq_ before the column names
+    covars_diff_qoq.columns = [col + "_qoq" for col in covars_nodiff.columns]
+    covars_diff_qoq = TimeSeries.from_dataframe(covars_diff_qoq)
+
+    return ts, covars_diff, covars_diff_yoy, covars_nodiff, covars_diff_qoq
