@@ -393,7 +393,7 @@ def df3ts(df):
         "US_CPI",  # INFLATION
         "NEWS_SENTIMENT",
         "YIELD_CURVE",
-        "US_UNEMPLOYMENT_RATE",
+        "US_UNEMPLOYMENT_RATE"
     ]
 
     # Filtrer uniquement les colonnes de la liste `varss` dans le DataFrame
