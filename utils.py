@@ -202,8 +202,20 @@ def load_jorge_data():
     # deux_semaines = pd.read_csv("data/excel_jorge/Variables_Chomage_US_2semaines.csv")
     # deux_semaines["DATE"] = pd.to_datetime(deux_semaines["DATE"])
 
-    # trimestrielles = pd.read_excel("data/excel_jorge/Variables_US_Trimestrielles.xlsx")
-    # weekly = pd.read_csv("data/excel_jorge/Variables_US_Weekly.csv")
+    trimestrielles = pd.read_excel("data/excel_jorge/Variables_US_Trimestrielles.xlsx")
+    trimestrielles = trimestrielles.replace("Nan", pd.NA).replace("<NA>", pd.NA)
+    trimestrielles["DATE"] = pd.to_datetime(trimestrielles["DATE"])
+    trimestrielles["W068RCQ027SBEA"] = pd.to_numeric(trimestrielles["W068RCQ027SBEA"])
+    trimestrielles = trimestrielles.set_index("DATE").asfreq("QE", method="ffill")
+    trimestrielles = trimestrielles[["GDPC1", "GPDI", "W068RCQ027SBEA"]]
+    trimestrielles = trimestrielles.resample("ME").interpolate()
+
+
+    weekly = pd.read_csv("data/excel_jorge/Variables_US_Weekly.csv")
+    weekly = weekly.replace("Nan", pd.NA).replace("<NA>", pd.NA)
+    weekly["DATE"] = pd.to_datetime(weekly["DATE"])
+    weekly = weekly.set_index("DATE").asfreq("W", method="ffill").resample("ME").mean()
+    weekly = weekly[["TOTBKCR"]]
 
     autres = pd.read_csv("data/excel_jorge/Variables_US.csv")
     autres["DATE"] = pd.to_datetime(autres["DATE"])
@@ -216,7 +228,11 @@ def load_jorge_data():
         ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR"]
     ]
 
-    return autres
+    # Merge all data
+    jorge_df = trimestrielles.merge(weekly, left_index=True, right_index=True, how="left")
+    jorge_df = jorge_df.merge(autres, left_index=True, right_index=True, how="left")
+
+    return jorge_df
 
 
 def load_data():
@@ -295,10 +311,10 @@ def scale_ts(series, should_diff, diff_order=1):
     differentiator = Diff(dropna=True, lags=diff_order)
 
     if should_diff:
-        pipeline = Pipeline([filler, log_transformer, differentiator, scaler])
+        pipeline = Pipeline([filler, differentiator, scaler])
         series_scaled = pipeline.fit_transform(series)
     else:
-        pipeline = Pipeline([filler, log_transformer, scaler])
+        pipeline = Pipeline([filler, scaler])
         series_scaled = pipeline.fit_transform(series)
 
     return pipeline, series_scaled
@@ -320,7 +336,9 @@ def df2ts(df):
     # Create a TimeSeries object
     ts = TimeSeries.from_dataframe(df, value_cols=["US_TB_YIELD_10YRS"])
 
-    varss = [
+    # Create covariates that will be differenced
+    covars_diff = df[
+        [
             "FFED",
             "US_TB_YIELD_1YR",
             "US_TB_YIELD_2YRS",
@@ -333,40 +351,25 @@ def df2ts(df):
             "MICH", # EXPECTED INFLATION 1 YR
             "EXPINF10YR", # EXPECTED INFLATION 10 YR
             "AWHMAN",
-            "STDSL", # SMALL DEPOSITS,
+            "STDSL", # SMALL DEPOSITS
 
-            #### YOY
-            "SNP_500", # STOCK MARKET
-            "US_CPI", # INFLATION
-
-
-            # NO DIFF
-            "NEWS_SENTIMENT",
-            "YIELD_CURVE",
-            "US_UNEMPLOYMENT_RATE",
-            "STDSL"
+            "GDPC1", # GDP
+            "GPDI",
+            "W068RCQ027SBEA",
+            "TOTBKCR",
         ]
-
-    # Create covariates that will be differenced
-    covars_diff = df[varss]
-    covars_diff.columns = [col + "_diff" for col in covars_diff.columns]
+    ]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
 
-
-    covars_diff_yoy = df[varss]
-    covars_diff_yoy.columns = [col + "_yoy" for col in covars_diff_yoy.columns]
+    covars_diff_yoy = df[
+        ["SNP_500", # STOCK MARKET
+                          "US_CPI" # INFLATION
+                          ]
+                          ]
     covars_diff_yoy = TimeSeries.from_dataframe(covars_diff_yoy)
 
     # Create covariates that will not be differenced
-    covars_nodiff = df[varss]
-    covars_nodiff.columns = [col + "_nodiff" for col in covars_nodiff.columns]
+    covars_nodiff = df[["NEWS_SENTIMENT", "YIELD_CURVE", "US_UNEMPLOYMENT_RATE", "STDSL"]]
     covars_nodiff = TimeSeries.from_dataframe(covars_nodiff)
 
-
-
-    covars_diff_qoq = df[varss]
-    # Append qoq_ before the column names
-    covars_diff_qoq.columns = [col + "_qoq" for col in covars_nodiff.columns]
-    covars_diff_qoq = TimeSeries.from_dataframe(covars_diff_qoq)
-
-    return ts, covars_diff, covars_diff_yoy, covars_nodiff, covars_diff_qoq
+    return ts, covars_diff, covars_diff_yoy, covars_nodiff
