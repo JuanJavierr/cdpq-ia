@@ -225,7 +225,7 @@ def load_jorge_data():
     autres = autres.resample("ME").mean()
 
     autres = autres[
-        ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR"]
+        ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR", "PAYEMS", "INTDSRUSM193N"]
     ]
 
     # Merge all data
@@ -342,34 +342,36 @@ def df2ts(df):
             "FFED",
             "US_TB_YIELD_1YR",
             "US_TB_YIELD_2YRS",
-            "US_TB_YIELD_5YRS",
             "US_TB_YIELD_3YRS",
             "US_TB_YIELD_5YRS",
             "US_TB_YIELD_3MTHS",
             "US_PERSONAL_SPENDING_PCE",
-            "STICKCPIM157SFRBATL",
-            "MICH", # EXPECTED INFLATION 1 YR
-            "EXPINF10YR", # EXPECTED INFLATION 10 YR
+            "EXPINF10YR",  # EXPECTED INFLATION 10 YR
             "AWHMAN",
-            "STDSL", # SMALL DEPOSITS
-
-            "GDPC1", # GDP
+            "STDSL",  # SMALL DEPOSITS
+            "GDPC1",  # GDP
             "GPDI",
             "W068RCQ027SBEA",
             "TOTBKCR",
+            "US_UNEMPLOYMENT_RATE",
         ]
     ]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
 
-    covars_diff_yoy = df[
-        ["SNP_500", # STOCK MARKET
-                          "US_CPI" # INFLATION
-                          ]
-                          ]
+    covars_diff_yoy = df[["SNP_500", "US_CPI"]]  # STOCK MARKET  # INFLATION
     covars_diff_yoy = TimeSeries.from_dataframe(covars_diff_yoy)
 
     # Create covariates that will not be differenced
-    covars_nodiff = df[["NEWS_SENTIMENT", "YIELD_CURVE", "US_UNEMPLOYMENT_RATE", "STDSL"]]
+    covars_nodiff = df[
+        [
+            "NEWS_SENTIMENT",
+            "YIELD_CURVE",
+            "STDSL",
+            "STICKCPIM157SFRBATL",  # STICKY CPI PCT CHANGE
+            "MICH",  # EXPECTED PCT INFLATION 1 YR
+            "EMRATIO"
+        ]
+    ]
     covars_nodiff = TimeSeries.from_dataframe(covars_nodiff)
 
     return ts, covars_diff, covars_diff_yoy, covars_nodiff
