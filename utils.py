@@ -107,9 +107,10 @@ def evaluate_by_horizon(forecasts_df: pd.DataFrame) -> pd.DataFrame:
     # Compute error and squared error
     forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs() * 100
     forecasts_df["squared_error"] = forecasts_df["error"]**2
+    forecasts_df["abs_error"] = forecasts_df["error"].abs()
 
     # Group by horizon and compute mean error and mean squared error
-    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error"]].add_prefix("mean_")
+    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error", "abs_error"]].add_prefix("mean_")
     grouped["root_mean_squared_error"] = grouped["mean_squared_error"]**0.5
 
     return grouped
@@ -225,7 +226,7 @@ def load_jorge_data():
     autres = autres.resample("ME").mean()
 
     autres = autres[
-        ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR", "PAYEMS", "INTDSRUSM193N"]
+        ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR", "PAYEMS"]
     ]
 
     # Merge all data
@@ -303,19 +304,23 @@ def load_data():
     return df
 
 
-def scale_ts(series, should_diff, diff_order=1):
+def scale_ts(series, should_diff, diff_order=1, should_scale=True, should_log=True):
     """Scale TimeSeries and apply transformations"""
     log_transformer = InvertibleMapper(fn=np.log1p, inverse_fn=np.expm1, name="log1p")
     scaler = Scaler(StandardScaler())
     filler = MissingValuesFiller()
     differentiator = Diff(dropna=True, lags=diff_order)
 
+    operations = [filler]
     if should_diff:
-        pipeline = Pipeline([filler, differentiator, scaler])
-        series_scaled = pipeline.fit_transform(series)
-    else:
-        pipeline = Pipeline([filler, scaler])
-        series_scaled = pipeline.fit_transform(series)
+        operations.append(differentiator)
+    # if should_log:
+    #     operations.append(log_transformer)
+    if should_scale:
+        operations.append(scaler)
+
+    pipeline = Pipeline(operations)
+    series_scaled = pipeline.fit_transform(series)
 
     return pipeline, series_scaled
 
