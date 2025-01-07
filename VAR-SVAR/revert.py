@@ -1,9 +1,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from statsmodels.tsa.api import VAR
-import matplotlib.pyplot as plt
-from statsmodels.tsa.api import VAR
 import pandas as pd
 from load_ import load_and_process_data
 import statsmodels.api as sm
@@ -22,8 +19,8 @@ monthly_avg['US_TB_YIELD_10YRS_diff'] = monthly_avg['US_TB_YIELD_10YRS'].diff().
 monthly_avg['US_TB_YIELD_1YR_diff'] = monthly_avg['US_TB_YIELD_1YR'].diff().dropna()
 
 # Select only the necessary columns for the VAR model
-data_for = monthly_avg[['US_UNEMPLOYMENT_RATE',
-                        'SNP_500_diff', 'FFED_diff', 'US_TB_YIELD_10YRS_diff']]
+data_for = monthly_avg[['US_CPI_diff', 'US_UNEMPLOYMENT_RATE', 'US_PERSONAL_SPENDING_PCE_diff',
+                        'SNP_500_diff', 'FFED_diff', 'US_TB_YIELD_10YRS_diff', 'US_TB_YIELD_10YRS_diff']]
 data_for_var = data_for.dropna()
 
 # Determine the split point (70% for training)
@@ -36,16 +33,10 @@ test = data_for_var.iloc[train_size:]
 # Train the VAR model on the training data
 model = VAR(train)
 
-lag_order = model.select_order(maxlags=15)  # Test up to 15 lags
-print(lag_order.summary())
 
-# Choose the best lag based on the lowest AIC or BIC
-optimal_lag = lag_order.aic  # Or you could use lag_order.bic
-print(f"Optimal lag: {optimal_lag}")
 
 var_model = model.fit(6)
 
-print(var_model.summary())
 
 last_train_values = train.values[-6:]
 
@@ -108,27 +99,14 @@ last_real_values = monthly_avg.loc[train.index[-1]].copy()
 # Iterate through forecasted differenced values
 for i in range(len(forecast_df)):
     # Reconstruct each differenced variable by adding the forecasted diff to the previous real value
-    new_row = last_real_values.copy()
-    if 'US_CPI_diff' in forecast_df.columns:
-        new_row['US_CPI'] = last_real_values['US_CPI'] + forecast_df.iloc[i]['US_CPI_diff']
-    if 'US_PERSONAL_SPENDING_PCE_diff' in forecast_df.columns:
-        new_row['US_PERSONAL_SPENDING_PCE'] = last_real_values['US_PERSONAL_SPENDING_PCE'] + forecast_df.iloc[i][
-            'US_PERSONAL_SPENDING_PCE_diff']
-    if 'SNP_500_diff' in forecast_df.columns:
-        new_row['SNP_500'] = last_real_values['SNP_500'] + forecast_df.iloc[i]['SNP_500_diff']
-    if 'FFED_diff' in forecast_df.columns:
-        new_row['FFED'] = last_real_values['FFED'] + forecast_df.iloc[i]['FFED_diff']
-    if 'US_TB_YIELD_10YRS_diff' in forecast_df.columns:
-        new_row['US_TB_YIELD_10YRS'] = last_real_values['US_TB_YIELD_10YRS'] + forecast_df.iloc[i][
-            'US_TB_YIELD_10YRS_diff']
-    if 'US_TB_YIELD_1YR_diff' in forecast_df.columns:
-        new_row['US_TB_YIELD_1YR'] = last_real_values['US_TB_YIELD_1YR'] + forecast_df.iloc[i]['US_TB_YIELD_1YR_diff']
+    new_row = []
+    new_row = last_real_values['US_TB_YIELD_10YRS']
+    new_row = new_row + forecast_df.iloc[i]['US_TB_YIELD_10YRS_diff']
 
     # Append the reconstructed row to the list
     real_forecast_values.append(new_row)
 
-    # Update last_real_values for the next iteration
-    last_real_values = new_row
+
 
 # Convert the list of reconstructed values to a DataFrame
 real_forecast_df = pd.DataFrame(real_forecast_values)
@@ -151,9 +129,9 @@ last_real_values.index = test.index  # Aligning with 'test' DataFrame's index
 forecast_df.index = forecast_df.index  # Ensure 'forecast_df' already has the correct DatetimeIndex
 
 # Create a plot for each variable
-variables_to_plot = ['SNP_500', 'FFED', 'US_TB_YIELD_10YRS']
+variables_to_plot = ['US_TB_YIELD_10YRS']
 
-plt.figure(figsize=(12, len(variables_to_plot) * 4))
+plt.figure(figsize=(12, len(variables_to_plot)))
 
 for i, var in enumerate(variables_to_plot):
     plt.subplot(len(variables_to_plot), 1, i + 1)
@@ -173,3 +151,25 @@ for i, var in enumerate(variables_to_plot):
 # Adjust layout
 plt.tight_layout()
 plt.show()
+
+
+
+# Convert forecast_values to a NumPy array if it is not already
+forecast_value = forecast_df['US_TB_YIELD_10YRS'].values
+
+
+# Extract the forecasted values for 'US_TB_YIELD_10YRS'
+forecasted = forecast_value
+
+
+# Calculate MSE, RMSE, and MAPE
+actual = test_data['US_TB_YIELD_10YRS'].values  # Replace 'US_TB_YIELD_10YRS' with your variable name
+
+mse = np.mean((actual - forecasted) ** 2)
+rmse = np.sqrt(mse)
+mape = np.mean(np.abs((actual - forecasted) / actual)) * 100
+
+print(f"MSE: {mse}")
+print(f"RMSE: {rmse}")
+print(f"MAPE: {mape}%")
+

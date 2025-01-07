@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 from utilss import evaluate_by_horizon
 
 datareal = load_data()
-data = arnaud_get_data()
+data = arnaud_get_data_diff()
 # Determine the split point (70% for training)
 
 # Ensure the index is a DatetimeIndex
 data.index = pd.to_datetime(data.index)
 
 # Specify the date for splitting the data
-split_date = '2012-12-31'
+split_date = '2005-12-31'
 end_date = '2019-12-31'
 
 # Split the data into training and testing sets
@@ -28,31 +28,32 @@ test_data = data.loc[split_date:end_date]  # Testing data from January 1, 2016, 
 # Train the VAR model on the training data
 model = VAR(train_data)
 
-# Select the optimal lag based on AIC (can also use BIC)
-lag_order = model.select_order(maxlags=15)  # Optional maxlags for search
-optimal_lag = lag_order.aic  # Selecting the lag based on AIC (you can also use BIC or FPE)
-print(lag_order.summary())
 
 # Fit the model with the optimal lag
-var_model = model.fit(4)
+var_model = model.fit(5)
 
 
-print(var_model.summary())
+#print(var_model.summary())
 
+last_train_val = train_data.values[-5:]
 
-last_train_val = train_data.values[-4:]
 
 # Initialize an empty list to store forecasted values
 forecast_values = []
 
 # Perform dynamic forecasting with actual values
 for step in range(len(test_data)):
+    print(step)
 
-    forecast_one_step = var_model.forecast(last_train_val, steps=1)
+    if step == 168:
+        forecast_one_step = var_model.forecast(last_train_val, steps=1)
+        forecast_values.append(forecast_one_step[0])
 
+    elif step % 2 == 0:
+        forecast_one_step = var_model.forecast(last_train_val, steps=2)
+        forecast_values.append(forecast_one_step[0])
+        forecast_values.append(forecast_one_step[1])
 
-
-    forecast_values.append(forecast_one_step[0])
 
 
     actual_next_step = test_data.iloc[step].values  # Get the actual value for the next step
@@ -84,24 +85,6 @@ for i, column in enumerate(test_data.columns, 1):
 #plt.show()
 
 
-# Convert forecast_values to a NumPy array if it is not already
-forecast_values = forecast_df['US_TB_YIELD_10YRS'].values
-
-
-# Extract the forecasted values for 'US_TB_YIELD_10YRS'
-forecasted = forecast_values
-
-
-# Calculate MSE, RMSE, and MAPE
-actual = test_data['US_TB_YIELD_10YRS'].values  # Replace 'US_TB_YIELD_10YRS' with your variable name
-
-mse = np.mean((actual - forecasted) ** 2)
-rmse = np.sqrt(mse)
-mape = np.mean(np.abs((actual - forecasted) / actual)) * 100
-
-print(f"MSE: {mse}")
-print(f"RMSE: {rmse}")
-print(f"MAPE: {mape}%")
 
 # Ensure the index is a DatetimeIndex
 datareal.index = pd.to_datetime(datareal.index)
@@ -116,10 +99,11 @@ last_trainreal_value = train_datareal['US_TB_YIELD_10YRS'].iloc[-1]
 
 real_forecast_values = []
 real_values = []
+
 new_row = last_trainreal_value
 real_val = last_trainreal_value
 
-#print(last_trainreal_value)
+
 for i in range(len(forecast_df)):
 
 
@@ -131,6 +115,8 @@ for i in range(len(forecast_df)):
     real_val = real_val + test_data['US_TB_YIELD_10YRS'].iloc[i]
     #print(test_datareal['US_TB_YIELD_10YRS'].iloc[i])
     real_values.append(real_val)
+
+
 
 # Ensure real_forecast_values is a Series with the same index as forecast_df
 real_forecast_series = pd.Series(real_forecast_values, index=forecast_df.index)
@@ -166,10 +152,6 @@ forecasted = np.array(real_forecast_values)
 
 # Calculate MSE, RMSE, and MAPE
 actual = np.array(real_values)  # Replace 'US_TB_YIELD_10YRS' with your variable name
-
-# Retrieve the column index for 'US_TB_YIELD_10YRS' from the test data
-variable_index = test_datareal.columns.get_loc('US_TB_YIELD_10YRS')
-
 # Calculate MSE, RMSE, and MAPE
 #actual = test_datareal['US_TB_YIELD_10YRS'].values  # Replace 'US_TB_YIELD_10YRS' with your variable name
 

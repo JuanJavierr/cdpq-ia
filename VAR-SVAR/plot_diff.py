@@ -22,46 +22,10 @@ monthly_avg_diff = monthly_avg.dropna()
 
 
 
-plt.figure(figsize=(12, 12))
-
-# Plot for 'US_CPI_diff'
-plt.subplot(4, 2, 1)
-plt.plot(monthly_avg_diff.index.to_timestamp(), monthly_avg_diff['US_CPI_diff'], label='US_CPI_diff', marker='.', markersize=2)
-plt.title('US CPI (Differenced)')
-plt.xlabel('Month')
-plt.ylabel('US_CPI_diff')
-plt.xticks(rotation=45)
-plt.grid(True)
-
-# Plot for 'US_PERSONAL_SPENDING_PCE_diff'
-plt.subplot(4, 2, 2)
-plt.plot(monthly_avg_diff.index.to_timestamp(), monthly_avg_diff['US_PERSONAL_SPENDING_PCE_diff'], label='US_PERSONAL_SPENDING_PCE_diff', marker='.', markersize=2)
-plt.title('US Personal Spending PCE (Differenced)')
-plt.xlabel('Month')
-plt.ylabel('US_PERSONAL_SPENDING_PCE_diff')
-plt.xticks(rotation=45)
-plt.grid(True)
-
-# Plot for 'SNP_500_diff'
-plt.subplot(4, 2, 3)
-plt.plot(monthly_avg_diff.index.to_timestamp(), monthly_avg_diff['SNP_500_diff'], label='SNP_500_diff', marker='.', markersize=2)
-plt.title('S&P 500 (Differenced)')
-plt.xlabel('Month')
-plt.ylabel('SNP_500_diff')
-plt.xticks(rotation=45)
-plt.grid(True)
-
-# Plot for 'FFED_diff'
-plt.subplot(4, 2, 4)
-plt.plot(monthly_avg_diff.index.to_timestamp(), monthly_avg_diff['FFED_diff'], label='FFED_diff', marker='.', markersize=2)
-plt.title('Fed Funds Rate (Differenced)')
-plt.xlabel('Month')
-plt.ylabel('FFED_diff')
-plt.xticks(rotation=45)
-plt.grid(True)
+plt.figure(figsize=(1, 1))
 
 # Plot for 'US_TB_YIELD_10YRS_diff'
-plt.subplot(4, 2, 5)
+plt.subplot(1, 1, 1)
 plt.plot(monthly_avg_diff.index.to_timestamp(), monthly_avg_diff['US_TB_YIELD_10YRS_diff'], label='US_TB_YIELD_10YRS_diff', marker='.', markersize=2)
 plt.title('US 10-Year TB Yield (Differenced)')
 plt.xlabel('Month')
@@ -69,14 +33,7 @@ plt.ylabel('US_TB_YIELD_10YRS_diff')
 plt.xticks(rotation=45)
 plt.grid(True)
 
-# Plot for 'US_TB_YIELD_1YRS_diff'
-plt.subplot(4, 2, 6)
-plt.plot(monthly_avg_diff.index.to_timestamp(), monthly_avg_diff['US_TB_YIELD_1YRS_diff'], label='US_TB_YIELD_1YRS_diff', marker='.', markersize=2)
-plt.title('US 1-Year TB Yield (Differenced)')
-plt.xlabel('Month')
-plt.ylabel('US_TB_YIELD_1YRS_diff')
-plt.xticks(rotation=45)
-plt.grid(True)
+
 
 # Adjust layout for better spacing
 plt.tight_layout()

@@ -62,3 +62,94 @@ plt.tight_layout()
 
 # Show the plot
 plt.show()
+
+
+import numpy as np
+
+# Ensure the index is a DatetimeIndex
+datareal.index = pd.to_datetime(datareal.index)
+
+# Specify the date for splitting the data
+split_date = '2015-12-31'
+
+# Split the data into training and testing sets
+train_datareal = datareal.loc[:split_date]  # Training data up to December 31, 2015
+test_datareal = datareal.loc[split_date:]  # Testing data from January 1, 2016, onwards
+
+last_trainreal_value = train_datareal["US_TB_YIELD_10YRS"].iloc[-1]
+
+
+real_forecast_values = []
+for i in range(len(forecast_df)):
+    # Reconstruct each differenced variable by adding the forecasted diff to the previous real value
+    new_row = last_trainreal_value
+    new_row = new_row + forecast_df.iloc[i]['US_TB_YIELD_10YRS']
+
+    # Append the reconstructed row to the list
+    real_forecast_values.append(new_row)
+
+# Ensure real_forecast_values is a Series with the same index as forecast_df
+real_forecast_series = pd.Series(real_forecast_values, index=forecast_df.index)
+
+# Plotting
+plt.figure(figsize=(10, 6))
+
+# Plot the actual vs reconstructed forecasted data for "US_TB_YIELD_10YRS"
+plt.plot(test_datareal.index, test_datareal["US_TB_YIELD_10YRS"], label='Actual', color='blue')
+plt.plot(real_forecast_series.index, real_forecast_series, label='Reconstructed Forecast', color='red', linestyle='dashed')
+
+# Add titles and labels
+plt.title('US_TB_YIELD_10YRS: Actual vs Reconstructed Forecast')
+plt.xlabel('Month')
+plt.ylabel('US_TB_YIELD_10YRS')
+plt.legend()
+plt.grid(True)
+
+plt.tight_layout()
+# Show the plot
+plt.show()
+
+
+
+
+import numpy as np
+
+# Convert forecast_values to a NumPy array if it is not already
+forecasted = np.array(real_forecast_values)
+
+# Retrieve the column index for 'US_TB_YIELD_10YRS' from the test data
+variable_index = test_datareal.columns.get_loc('US_TB_YIELD_10YRS')
+
+# Calculate MSE, RMSE, and MAPE
+actual = test_datareal['US_TB_YIELD_10YRS'].values  # Replace 'US_TB_YIELD_10YRS' with your variable name
+
+mse = np.mean((actual - forecasted) ** 2)
+rmse = np.sqrt(mse)
+mape = np.mean(np.abs((actual - forecasted) / actual)) * 100
+
+print(f"MSE: {mse}")
+print(f"RMSE: {rmse}")
+print(f"MAPE: {mape}%")
+
+
+
+
+
+# Convert forecast_values to a NumPy array if it is not already
+forecast_values = forecast_df['US_TB_YIELD_10YRS'].values
+
+
+# Extract the forecasted values for 'US_TB_YIELD_10YRS'
+forecasted = forecast_values
+
+
+# Calculate MSE, RMSE, and MAPE
+actual = test_data['US_TB_YIELD_10YRS'].values  # Replace 'US_TB_YIELD_10YRS' with your variable name
+
+mse = np.mean((actual - forecasted) ** 2)
+rmse = np.sqrt(mse)
+mape = np.mean(np.abs((actual - forecasted) / actual)) * 100
+
+print(f"MSE: {mse}")
+print(f"RMSE: {rmse}")
+print(f"MAPE: {mape}%")

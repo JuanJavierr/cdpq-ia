@@ -1,5 +1,5 @@
 from statsmodels.tsa.api import VAR
-#from utilss import arnaud_get_datareal
+# from utilss import arnaud_get_datareal
 from utilss import arnaud_get_data, load_data, arnaud_get_data_diff
 from utilss import get_raw_data
 import pandas as pd
@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.api import VAR
 import matplotlib.pyplot as plt
 from utilss import evaluate_by_horizon
+from statsmodels.tsa.arima.model import ARIMA
+
 
 datareal = load_data()
 data = arnaud_get_data()
@@ -17,7 +19,7 @@ data = arnaud_get_data()
 data.index = pd.to_datetime(data.index)
 
 # Specify the date for splitting the data
-split_date = '2012-12-31'
+split_date = '2005-12-31'
 end_date = '2019-12-31'
 
 # Split the data into training and testing sets
@@ -25,83 +27,62 @@ train_data = data.loc[:split_date]  # Training data up to December 31, 2015
 test_data = data.loc[split_date:end_date]  # Testing data from January 1, 2016, onwards
 
 
-# Train the VAR model on the training data
-model = VAR(train_data)
+# Ajuster le modèle AR(1)
+model = ARIMA(train_data['US_TB_YIELD_10YRS'], order=(1, 0, 0))  # AR(1) -> order=(1,0,0)
+fitted_model = model.fit()
 
-# Select the optimal lag based on AIC (can also use BIC)
-lag_order = model.select_order(maxlags=15)  # Optional maxlags for search
-optimal_lag = lag_order.aic  # Selecting the lag based on AIC (you can also use BIC or FPE)
-print(lag_order.summary())
+# Résumé du modèle
+print(fitted_model.summary())
 
-# Fit the model with the optimal lag
-var_model = model.fit(4)
-
-
-print(var_model.summary())
-
-
-last_train_val = train_data.values[-4:]
-
-# Initialize an empty list to store forecasted values
 forecast_values = []
+last_train_val = train_data['US_TB_YIELD_10YRS'].iloc[-1]
 
-# Perform dynamic forecasting with actual values
 for step in range(len(test_data)):
 
-    forecast_one_step = var_model.forecast(last_train_val, steps=1)
+    if step == 168:
+        # Forecast the next step
+        # forecast_one_step = fitted_model.forecast(last_train_val, step = 1)
+        forecast_one_step = fitted_model.params["const"] + fitted_model.params["ar.L1"] * last_train_val
+        forecast_values.append(forecast_one_step)
 
+    elif step % 2 == 0:
+        forecast_one_step = fitted_model.params["const"] + fitted_model.params["ar.L1"] * last_train_val
+        forecast_values.append(forecast_one_step)
+        fore = fitted_model.params["const"] + fitted_model.params["ar.L1"] * forecast_one_step
+        forecast_values.append(fore)
 
+    # Update the last_train_val with the actual value for recursive forecasting
+    last_train_val = test_data['US_TB_YIELD_10YRS'].iloc[step]
 
-    forecast_values.append(forecast_one_step[0])
-
-
-    actual_next_step = test_data.iloc[step].values  # Get the actual value for the next step
-    last_train_val = np.vstack([last_train_val[1:], actual_next_step])  # Update with actual data
-# Convert forecast values to a DataFrame
-forecast_df = pd.DataFrame(forecast_values, columns=train_data.columns)
+forecast_df = pd.DataFrame(forecast_values)
 
 # Ensure forecast_df has the same index as test_data
 forecast_df.index = test_data.index
 
+import matplotlib.pyplot as plt
 
+# Plot the actual vs forecasted data
+plt.figure(figsize=(15, 8))
 
-# Plot the actual vs. forecasted data
-plt.figure(figsize=(15, 10))
+# Plot the actual test data
+plt.plot(test_data['US_TB_YIELD_10YRS'], label="Actual Data", color="blue")
 
-for i, column in enumerate(test_data.columns, 1):
-    plt.subplot(4, 2, i)  # Adjust subplot grid based on the number of variables
-    plt.plot(test_data.index, test_data[column], label='Actual', color='blue')
-    plt.plot(forecast_df.index, forecast_df[column], label='Forecast', color='red', linestyle='dashed')
-    plt.title(f'{column}: Actual vs Forecast')
-    plt.xlabel('Month')
-    plt.ylabel(column)
-    plt.legend()
-    plt.grid(True)
+# Plot the forecasted data
+plt.plot(forecast_df, label="Forecasted Data", color="red", linestyle="dashed")
 
-# Adjust layout to prevent overlapping labels
-#plt.tight_layout()
+# Add titles and labels
+plt.title("Actual vs Forecasted Values")
+plt.xlabel("Time")
+plt.ylabel("Value")
+plt.legend()
 
-#plt.show()
+# Show grid for better readability
+plt.grid(True)
 
+# Display the plot
+plt.tight_layout()
+plt.show()
 
-# Convert forecast_values to a NumPy array if it is not already
-forecast_values = forecast_df['US_TB_YIELD_10YRS'].values
-
-
-# Extract the forecasted values for 'US_TB_YIELD_10YRS'
-forecasted = forecast_values
-
-
-# Calculate MSE, RMSE, and MAPE
-actual = test_data['US_TB_YIELD_10YRS'].values  # Replace 'US_TB_YIELD_10YRS' with your variable name
-
-mse = np.mean((actual - forecasted) ** 2)
-rmse = np.sqrt(mse)
-mape = np.mean(np.abs((actual - forecasted) / actual)) * 100
-
-print(f"MSE: {mse}")
-print(f"RMSE: {rmse}")
-print(f"MAPE: {mape}%")
 
 # Ensure the index is a DatetimeIndex
 datareal.index = pd.to_datetime(datareal.index)
@@ -123,7 +104,7 @@ real_val = last_trainreal_value
 for i in range(len(forecast_df)):
 
 
-    new_row = new_row + forecast_df['US_TB_YIELD_10YRS'].iloc[i]
+    new_row = new_row + forecast_df.iloc[i]
     #print(forecast_df['US_TB_YIELD_10YRS'].iloc[i])
     real_forecast_values.append(new_row)
 

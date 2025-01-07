@@ -107,9 +107,10 @@ def evaluate_by_horizon(forecasts_df: pd.DataFrame) -> pd.DataFrame:
     # Compute error and squared error
     forecasts_df["abs_pct_error"] = ((forecasts_df["US_TB_YIELD_10YRS"] - forecasts_df["forecast"]) / forecasts_df["US_TB_YIELD_10YRS"]).abs() * 100
     forecasts_df["squared_error"] = forecasts_df["error"]**2
+    forecasts_df["abs_error"] = forecasts_df["error"].abs()
 
     # Group by horizon and compute mean error and mean squared error
-    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error"]].add_prefix("mean_")
+    grouped = forecasts_df.groupby(by="horizon").mean()[["abs_pct_error", "squared_error", "abs_error"]].add_prefix("mean_")
     grouped["root_mean_squared_error"] = grouped["mean_squared_error"]**0.5
 
     return grouped
@@ -225,7 +226,7 @@ def load_jorge_data():
     autres = autres.resample("ME").mean()
 
     autres = autres[
-        ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR"]
+        ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR", "PAYEMS"]
     ]
 
     # Merge all data
@@ -303,19 +304,23 @@ def load_data():
     return df
 
 
-def scale_ts(series, should_diff, diff_order=1):
+def scale_ts(series, should_diff, diff_order=1, should_scale=True, should_log=True):
     """Scale TimeSeries and apply transformations"""
     log_transformer = InvertibleMapper(fn=np.log1p, inverse_fn=np.expm1, name="log1p")
     scaler = Scaler(StandardScaler())
     filler = MissingValuesFiller()
     differentiator = Diff(dropna=True, lags=diff_order)
 
+    operations = [filler]
     if should_diff:
-        pipeline = Pipeline([filler, differentiator, scaler])
-        series_scaled = pipeline.fit_transform(series)
-    else:
-        pipeline = Pipeline([filler, scaler])
-        series_scaled = pipeline.fit_transform(series)
+        operations.append(differentiator)
+    # if should_log:
+    #     operations.append(log_transformer)
+    if should_scale:
+        operations.append(scaler)
+
+    pipeline = Pipeline(operations)
+    series_scaled = pipeline.fit_transform(series)
 
     return pipeline, series_scaled
 
@@ -342,34 +347,36 @@ def df2ts(df):
             "FFED",
             "US_TB_YIELD_1YR",
             "US_TB_YIELD_2YRS",
-            "US_TB_YIELD_5YRS",
             "US_TB_YIELD_3YRS",
             "US_TB_YIELD_5YRS",
             "US_TB_YIELD_3MTHS",
             "US_PERSONAL_SPENDING_PCE",
-            "STICKCPIM157SFRBATL",
-            "MICH", # EXPECTED INFLATION 1 YR
-            "EXPINF10YR", # EXPECTED INFLATION 10 YR
+            "EXPINF10YR",  # EXPECTED INFLATION 10 YR
             "AWHMAN",
-            "STDSL", # SMALL DEPOSITS
-
-            "GDPC1", # GDP
+            "STDSL",  # SMALL DEPOSITS
+            "GDPC1",  # GDP
             "GPDI",
             "W068RCQ027SBEA",
             "TOTBKCR",
+            "US_UNEMPLOYMENT_RATE",
         ]
     ]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
 
-    covars_diff_yoy = df[
-        ["SNP_500", # STOCK MARKET
-                          "US_CPI" # INFLATION
-                          ]
-                          ]
+    covars_diff_yoy = df[["SNP_500", "US_CPI"]]  # STOCK MARKET  # INFLATION
     covars_diff_yoy = TimeSeries.from_dataframe(covars_diff_yoy)
 
     # Create covariates that will not be differenced
-    covars_nodiff = df[["NEWS_SENTIMENT", "YIELD_CURVE", "US_UNEMPLOYMENT_RATE", "STDSL"]]
+    covars_nodiff = df[
+        [
+            "NEWS_SENTIMENT",
+            "YIELD_CURVE",
+            "STDSL",
+            "STICKCPIM157SFRBATL",  # STICKY CPI PCT CHANGE
+            "MICH",  # EXPECTED PCT INFLATION 1 YR
+            "EMRATIO"
+        ]
+    ]
     covars_nodiff = TimeSeries.from_dataframe(covars_nodiff)
 
     return ts, covars_diff, covars_diff_yoy, covars_nodiff
