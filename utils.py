@@ -369,4 +369,37 @@ def df2ts(df):
     covars_diff_qoq.columns = [col + "_qoq" for col in covars_nodiff.columns]
     covars_diff_qoq = TimeSeries.from_dataframe(covars_diff_qoq)
 
-    return ts, covars_diff, covars_diff_yoy, covars_nodiff, covars_diff_qoq
+    return ts, covars_diff , covars_diff_yoy , covars_nodiff, covars_diff_qoq
+
+def df3ts(df):
+    # Créer la TimeSeries principale pour la cible (par exemple, US_TB_YIELD_10YRS)
+    ts = TimeSeries.from_dataframe(df, value_cols=["US_TB_YIELD_10YRS"])
+
+    # Liste des variables covariées
+    varss = [
+        "FFED",
+        "US_TB_YIELD_1YR",
+        "US_TB_YIELD_2YRS",
+        "US_TB_YIELD_5YRS",
+        "US_TB_YIELD_3YRS",
+        "US_TB_YIELD_3MTHS",
+        "US_PERSONAL_SPENDING_PCE",
+        "STICKCPIM157SFRBATL",
+        "MICH",  # EXPECTED INFLATION 1 YR
+        "EXPINF10YR",  # EXPECTED INFLATION 10 YR
+        "AWHMAN",
+        "STDSL",  # SMALL DEPOSITS
+        "SNP_500",  # STOCK MARKET
+        "US_CPI",  # INFLATION
+        "NEWS_SENTIMENT",
+        "YIELD_CURVE",
+        "US_UNEMPLOYMENT_RATE",
+    ]
+
+    # Filtrer uniquement les colonnes de la liste `varss` dans le DataFrame
+    covars = df[varss]
+
+    # Convertir les covariables en TimeSeries
+    covars_ts = TimeSeries.from_dataframe(covars)
+
+    return ts, covars_ts
