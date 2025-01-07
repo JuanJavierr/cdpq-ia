@@ -202,8 +202,20 @@ def load_jorge_data():
     # deux_semaines = pd.read_csv("data/excel_jorge/Variables_Chomage_US_2semaines.csv")
     # deux_semaines["DATE"] = pd.to_datetime(deux_semaines["DATE"])
 
-    # trimestrielles = pd.read_excel("data/excel_jorge/Variables_US_Trimestrielles.xlsx")
-    # weekly = pd.read_csv("data/excel_jorge/Variables_US_Weekly.csv")
+    trimestrielles = pd.read_excel("data/excel_jorge/Variables_US_Trimestrielles.xlsx")
+    trimestrielles = trimestrielles.replace("Nan", pd.NA).replace("<NA>", pd.NA)
+    trimestrielles["DATE"] = pd.to_datetime(trimestrielles["DATE"])
+    trimestrielles["W068RCQ027SBEA"] = pd.to_numeric(trimestrielles["W068RCQ027SBEA"])
+    trimestrielles = trimestrielles.set_index("DATE").asfreq("QE", method="ffill")
+    trimestrielles = trimestrielles[["GDPC1", "GPDI", "W068RCQ027SBEA"]]
+    trimestrielles = trimestrielles.resample("ME").interpolate()
+
+
+    weekly = pd.read_csv("data/excel_jorge/Variables_US_Weekly.csv")
+    weekly = weekly.replace("Nan", pd.NA).replace("<NA>", pd.NA)
+    weekly["DATE"] = pd.to_datetime(weekly["DATE"])
+    weekly = weekly.set_index("DATE").asfreq("W", method="ffill").resample("ME").mean()
+    weekly = weekly[["TOTBKCR"]]
 
     autres = pd.read_csv("data/excel_jorge/Variables_US.csv")
     autres["DATE"] = pd.to_datetime(autres["DATE"])
@@ -216,7 +228,11 @@ def load_jorge_data():
         ["STICKCPIM157SFRBATL", "MICH", "AWHMAN", "EMRATIO", "STDSL", "EXPINF10YR"]
     ]
 
-    return autres
+    # Merge all data
+    jorge_df = trimestrielles.merge(weekly, left_index=True, right_index=True, how="left")
+    jorge_df = jorge_df.merge(autres, left_index=True, right_index=True, how="left")
+
+    return jorge_df
 
 
 def load_data():
@@ -335,7 +351,12 @@ def df2ts(df):
             "MICH", # EXPECTED INFLATION 1 YR
             "EXPINF10YR", # EXPECTED INFLATION 10 YR
             "AWHMAN",
-            "STDSL" # SMALL DEPOSITS
+            "STDSL", # SMALL DEPOSITS
+
+            "GDPC1", # GDP
+            "GPDI",
+            "W068RCQ027SBEA",
+            "TOTBKCR",
         ]
     ]
     covars_diff = TimeSeries.from_dataframe(covars_diff)
