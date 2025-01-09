@@ -29,7 +29,7 @@ def make_forecasts(model, ts: TimeSeries, ts_scaled: TimeSeries, covariates_scal
     
     forecasts = pd.DataFrame()
 
-    val_df_scaled = ts_scaled.drop_before(pd.Timestamp("2015-12-31")).pd_dataframe()
+    val_df_scaled = ts_scaled.drop_before(pd.Timestamp("2012-12-31")).pd_dataframe()
 
 
     # Make forecasts for each date in the validation set
@@ -45,21 +45,29 @@ def make_forecasts(model, ts: TimeSeries, ts_scaled: TimeSeries, covariates_scal
         # print(f"Producing forecasts made at date: {ts_up_to_t.end_time()}")
         if model.supports_probabilistic_prediction:
             # Make forecasts
-            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates, num_samples=500, verbose=False)
+            pred = model.predict(n=36, series=ts_up_to_t, past_covariates=covariates, num_samples=500, verbose=False)
 
             # Get values for each quantile and unscale
             pred_quantiles_unscaled = {q: unscale_series(pred.quantile(q), pipeline, ts_scaled).pd_series() for q in [0.05, 0.1, 0.5, 0.9, 0.95]}
             # print(pred_unscaled)
             # print(pred)
         else:
-            pred = model.predict(n=12, series=ts_up_to_t, past_covariates=covariates)
+            pred = model.predict(n=36, series=ts_up_to_t, past_covariates=covariates)
             pred_unscaled = unscale_series(pred, pipeline, ts_scaled).pd_series()
             pred_quantiles_unscaled = {0.5: pred_unscaled}
             for q in [0.05, 0.1, 0.9, 0.95]:
                 pred_quantiles_unscaled[q] = pred_unscaled
 
         # Get labels (real values) for the period
-        labels = ts.pd_dataframe().loc[t:t+pd.Timedelta(days=364)]
+        three_years = t + (pd.Timedelta(days=364)*3)
+        labels = ts.pd_dataframe().loc[t:three_years]
+
+        # If labels don't extend to the end of the forecast period, create NA values for the missing dates
+        if labels.index[-1] < three_years:
+            missing_dates = pd.date_range(labels.index[-1] + pd.offsets.MonthEnd(), three_years, freq="ME")
+            missing_df = pd.DataFrame(index=missing_dates, columns=labels.columns)
+            labels = pd.concat([labels, missing_df])
+
         # print(labels)
 
 
@@ -236,7 +244,7 @@ def load_jorge_data():
     return jorge_df
 
 
-def load_data():
+def load_data(test=False):
     """Load raw data and construct DataFrame with all **unscaled** features"""
 
     # Load SF FED data
@@ -278,8 +286,9 @@ def load_data():
     # Resample to monthly frequency
     df = df.resample("ME").mean()
 
-    # Keep last year for testing
-    df = df[df.index <= "2023-08-31"]
+    if not test:
+        # Keep last year for testing
+        df = df[df.index <= "2023-08-31"]
 
 
 
