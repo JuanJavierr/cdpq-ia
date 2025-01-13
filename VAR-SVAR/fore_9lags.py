@@ -61,7 +61,7 @@ forecast_values = []
 for step in range(len(test)):
     # Forecast one step ahead
     # Forecast one step ahead
-    forecast_one_step = var_model.forecast(last_train_values, steps=12)
+    forecast_one_step = var_model.forecast(last_train_values, steps=1)
 
     # Append the forecasted value for the current step
     forecast_values.append(forecast_one_step[0])

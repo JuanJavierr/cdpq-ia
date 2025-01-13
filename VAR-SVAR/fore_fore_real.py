@@ -16,7 +16,7 @@ monthly_avg = load_and_process_data(file_path)
 
 
 
-data_var = monthly_avg[[ 'US_PERSONAL_SPENDING_PCE', 'US_UNEMPLOYMENT_RATE',
+data_var = monthly_avg[['US_PERSONAL_SPENDING_PCE', 'US_UNEMPLOYMENT_RATE',
                             'SNP_500', 'FFED', 'US_TB_YIELD_10YRS', 'US_TB_YIELD_1YR']]
 
 # Determine the split point (70% for training)
