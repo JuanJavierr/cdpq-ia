@@ -13,9 +13,69 @@ from darts.dataprocessing.transformers import (
     Scaler,
 )
 from sklearn.preprocessing import StandardScaler
+from pytorch_lightning.callbacks import Callback
+import torch
 
 
 #### Deep Learning utils
+class LossAccumulatorCallback(Callback):
+    """
+    PyTorch Lightning Callback to accumulate training and validation losses per epoch.
+    
+    Attributes:
+        train_losses (list): List to store training loss for each epoch.
+        val_losses (list): List to store validation loss for each epoch.
+    """
+    
+    def __init__(self):
+        self.train_losses = []
+        self.val_losses = []
+        
+        super().__init__()
+    
+    def on_train_epoch_end(self, trainer, pl_module):
+        """
+        Called when the train epoch ends.
+        
+        Args:
+            trainer (pl.Trainer): The trainer instance.
+            pl_module (pl.LightningModule): The model being trained.
+        """
+        # Retrieve the training loss from logged metrics
+        # Assumes that 'train_loss' is the key used for logging training loss
+        train_loss = trainer.callback_metrics.get('train_loss')
+        
+        if train_loss is not None:
+            # Detach and move to CPU if necessary
+            if isinstance(train_loss, torch.Tensor):
+                train_loss = train_loss.detach().cpu().item()
+            self.train_losses.append(train_loss)
+            # print(f"Accumulated train_loss: {self.train_losses}")
+        else:
+            print("train_loss not found in callback_metrics.")
+    
+    def on_validation_epoch_end(self, trainer, pl_module):
+        val_loss = trainer.callback_metrics.get('val_loss')
+        
+        if val_loss is not None:
+            # Detach and move to CPU if necessary
+            if isinstance(val_loss, torch.Tensor):
+                val_loss = val_loss.detach().cpu().item()
+            self.val_losses.append(val_loss)
+        else:
+            print("train_loss not found in callback_metrics.")
+    
+
+    def on_train_end(self, trainer, pl_module):
+        """
+        Called when the training ends.
+        
+        Args:
+            trainer (pl.Trainer): The trainer instance.
+            pl_module (pl.LightningModule): The model that was trained.
+        """
+        pass
+
 def save_results(hparams, eval_metrics, output_path):
     output_path = Path(output_path)
     include_header = not output_path.exists()
